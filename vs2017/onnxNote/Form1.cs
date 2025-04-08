@@ -17,6 +17,8 @@ using OpenCvSharp.Extensions;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 
+using YoloPoseOnnxHandle;
+
 
 namespace onnxNote
 {
@@ -48,6 +50,8 @@ namespace onnxNote
                     WinFormStringCnv.setControlFromString(this, File.ReadAllText(paramFilename));
                 }
             }
+
+            
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
@@ -97,14 +101,22 @@ namespace onnxNote
         private void button_OpenMovieFile_Click(object sender, EventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog();
-            ofd.Filter = "MP4|*.mp4";
+            ofd.Filter = "MP4|*.mp4|PNG|*.png";
 
             if (ofd.ShowDialog() != DialogResult.OK) return;
             if (capture != null) capture.Dispose();
 
-            capture = new VideoCapture(ofd.FileName);
-            trackBar_frameIndex.Maximum = capture.FrameCount;
-            trackBar_frameIndex.Value = 0;
+            if (Path.GetExtension(ofd.FileName) == "mp4")
+            {
+                capture = new VideoCapture(ofd.FileName);
+                trackBar_frameIndex.Maximum = capture.FrameCount;
+                trackBar_frameIndex.Value = 0;
+            }
+            else
+            {
+                pictureBoxUpdate(pictureBox, new Bitmap(ofd.FileName));
+            }
+
         }
 
         private void trackBar_frameIndex_Scroll(object sender, EventArgs e)
@@ -153,16 +165,9 @@ namespace onnxNote
                     if (!capture.Read(frame) || frame.Empty()) return;
 
                     Bitmap bitmap = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(frame);
-
-                    Tensor<float> inputTensor = ConvertBitmapToTensor(bitmap);
-                    var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor(sessionInputName, inputTensor) };
-                    var results = session.Run(inputs);
-                    var output = results.First().AsEnumerable<float>().ToArray();
-                    ParseYOLOOutput(output);
-
                     pictureBoxUpdate(pictureBox, bitmap);
 
-                    results.Dispose();
+
                 }
 
                 label_FrameCount.Text = trackBar_frameIndex.Value.ToString() + " / " + capture.FrameCount.ToString();
@@ -194,11 +199,8 @@ namespace onnxNote
             Console.WriteLine("Detection results:");
             int s0 = 8400;
 
-
             for (int i = 0; i < s0; i++)
             {
-                int offset = i * (56);
-
                 // BBOX
                 float center_x = output[i + s0 * 0];
                 float center_y = output[i + s0 * 1];
@@ -212,26 +214,20 @@ namespace onnxNote
                     Console.WriteLine("Keypoints:");
                     for (int j = 0; j < 17; j++)
                     {
-                        float keypointX = output[i + s0 * (j * 3 + 5) ];
-                        float keypointY = output[i + s0 * (j * 3 + 6) ];
-                        float confidenceKP = output[i + s0 * (j * 3 + 7) ];
+                        float keypointX = output[i + s0 * (j * 3 + 5)];
+                        float keypointY = output[i + s0 * (j * 3 + 6)];
+                        float confidenceKP = output[i + s0 * (j * 3 + 7)];
                         Console.WriteLine($"Keypoint {j + 1}: ({keypointX}, {keypointY}, {confidenceKP})");
                     }
                 }
             }
         }
 
-        InferenceSession session;
-        string sessionInputName;
-
         private void textBox_modelFilePath_TextChanged(object sender, EventArgs e)
         {
             if (File.Exists(textBox_modelFilePath.Text))
             {
-                if (session != null) session.Dispose();
-                session = new InferenceSession(textBox_modelFilePath.Text);
-                sessionInputName = session.InputMetadata.Keys.First();
-
+                yoloPoseModelHandle = new YoloPoseModelHandle(textBox_modelFilePath.Text);
             }
         }
 
@@ -245,6 +241,20 @@ namespace onnxNote
             using (Bitmap b = new Bitmap(pictureBox.Image))
             {
                 b.Save(sfd.FileName);
+            }
+        }
+
+        YoloPoseModelHandle yoloPoseModelHandle;
+
+        private void pictureBox_Paint(object sender, PaintEventArgs e)
+        {
+            PictureBox p  = (PictureBox)sender;
+            if (p.Image != null)
+            {
+                Bitmap bitmap = (Bitmap)(p.Image);
+
+                yoloPoseModelHandle.Predicte(bitmap);
+                
             }
         }
     }
