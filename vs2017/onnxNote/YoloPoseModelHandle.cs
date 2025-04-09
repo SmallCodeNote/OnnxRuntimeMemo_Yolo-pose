@@ -14,12 +14,12 @@ namespace YoloPoseOnnxHandle
 {
     class YoloPoseModelHandle : IDisposable
     {
-        public Tensor<float> ImageTensor;
-        public PoseInfoSet poseInfoSet;
-        public int modelOutputStride = 8400;
+        public string SessionInputName = "";
 
-        InferenceSession session;
-        public string sessionInputName = "";
+        public Tensor<float> ImageTensor;
+        public List<PoseInfo> PoseInfos;
+        private InferenceSession session;
+        private int modelOutputStride = 8400;
 
         public YoloPoseModelHandle(string modelfilePath)
         {
@@ -27,7 +27,7 @@ namespace YoloPoseOnnxHandle
             {
                 if (session != null) session.Dispose();
                 session = new InferenceSession(modelfilePath);
-                sessionInputName = session.InputMetadata.Keys.First();
+                SessionInputName = session.InputMetadata.Keys.First();
             }
         }
 
@@ -43,7 +43,7 @@ namespace YoloPoseOnnxHandle
             {
                 if (session != null) session.Dispose();
                 session = new InferenceSession(modelfilePath);
-                sessionInputName = session.InputMetadata.Keys.First();
+                SessionInputName = session.InputMetadata.Keys.First();
                 return true;
             }
             return false;
@@ -53,11 +53,11 @@ namespace YoloPoseOnnxHandle
         {
             ImageTensor = ConvertBitmapToTensor(bitmap);
 
-            var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor(sessionInputName, ImageTensor) };
+            var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor(SessionInputName, ImageTensor) };
             var results = session.Run(inputs);
             var output = results.First().AsEnumerable<float>().ToArray();
 
-            poseInfoSet = new PoseInfoSet(output);
+            PoseInfoSet(output);
 
             results.Dispose();
 
@@ -81,12 +81,72 @@ namespace YoloPoseOnnxHandle
             }
             return tensor;
         }
+
+        public override string ToString()
+        {
+            return SessionInputName;
+        }
+
+        public void PoseInfoSet(float[] outputArray, float confidenceThreshold = 0.6f)
+        {
+            PoseInfos = new List<PoseInfo>();
+            for (int i = 0; i < modelOutputStride; i++)
+            {
+                PoseInfo pi = new PoseInfo(outputArray, i);
+                if (pi.Bbox.Confidence >= confidenceThreshold)
+                {
+                    if (PoseInfos.Count > 0)
+                    {
+                        bool update = false;
+
+                        for (int index = 0; index < PoseInfos.Count; index++)
+                        {
+                            var item = PoseInfos[index];
+                            if (item.Bbox.Overlap(pi.Bbox) >= 0.8)
+                            {
+                                item.Bbox.OverlapUpdate(pi.Bbox);
+                                update = true;
+                            }
+                        }
+
+                        if (!update) PoseInfos.Add(pi);
+                    }
+                    else
+                    {
+                        PoseInfos.Add(pi);
+                    }
+                }
+            }
+        }
+
+        public void drawBBoxs(Graphics g)
+        {
+            if (g != null)
+            {
+                foreach (var info in PoseInfos)
+                {
+                    g.DrawRectangle(Pens.Blue, info.Bbox.Rectangle);
+                }
+            }
+        }
+
+        public void drawBones(Graphics g)
+        {
+            if (g != null)
+            {
+                foreach (var info in PoseInfos)
+                {
+                    info.KeyPoints.drawBone(g);
+                }
+            }
+        }
     }
+
 
     public class PoseInfoSet
     {
         public List<PoseInfo> PoseInfos;
-        public int stride = 8400;
+        private int stride = 8400;
 
         public PoseInfoSet(float[] outputArray, float confidenceThreshold = 0.8f)
         {
@@ -121,7 +181,8 @@ namespace YoloPoseOnnxHandle
         public float Width;
         public float Height;
         public float Confidence;
-        public int stride = 8400;
+        private int stride = 8400;
+
 
         public Bbox(float[] outputArray, int startIndex)
         {
@@ -131,48 +192,191 @@ namespace YoloPoseOnnxHandle
             this.Height = outputArray[startIndex + stride * 3];
             this.Confidence = outputArray[startIndex + stride * 4];
         }
+
+        public float Left { get { return Center_x - Width / 2.0f; } }
+        public float Right { get { return Center_x + Width / 2.0f; } }
+        public float Top { get { return Center_y - Height / 2.0f; } }
+        public float Bottom { get { return Center_y + Height / 2.0f; } }
+        public float Area { get { return Width * Height; } }
+
+        public Rectangle Rectangle { get { return new Rectangle((int)Left, (int)Top, (int)Width, (int)Height); } }
+
+        public float Overlap(Bbox bbox)
+        {
+            float intersectionLeft = Math.Max(this.Left, bbox.Left);
+            float intersectionTop = Math.Max(this.Top, bbox.Top);
+            float intersectionRight = Math.Min(this.Right, bbox.Right);
+            float intersectionBottom = Math.Min(this.Bottom, bbox.Bottom);
+
+            float intersectionWidth = Math.Max(0, intersectionRight - intersectionLeft);
+            float intersectionHeight = Math.Max(0, intersectionBottom - intersectionTop);
+
+            float intersectionArea = intersectionWidth * intersectionHeight;
+            float thisArea = this.Area;
+            float otherArea = bbox.Area;
+
+            float unionArea = thisArea + otherArea - intersectionArea;
+
+            return intersectionArea / unionArea;
+        }
+
+        public float OverlapUpdate(Bbox bbox)
+        {
+            float intersectionLeft = Math.Max(this.Left, bbox.Left);
+            float intersectionTop = Math.Max(this.Top, bbox.Top);
+            float intersectionRight = Math.Min(this.Right, bbox.Right);
+            float intersectionBottom = Math.Min(this.Bottom, bbox.Bottom);
+
+            float intersectionWidth = Math.Max(0, intersectionRight - intersectionLeft);
+            float intersectionHeight = Math.Max(0, intersectionBottom - intersectionTop);
+
+            float intersectionArea = intersectionWidth * intersectionHeight;
+            float thisArea = this.Area;
+            float otherArea = bbox.Area;
+
+            float unionArea = thisArea + otherArea - intersectionArea;
+
+            if (unionArea > 0)
+            {
+                this.Center_x = (intersectionLeft + intersectionRight) * 0.5f;
+                this.Center_y = (intersectionTop + intersectionBottom) * 0.5f;
+                this.Width = intersectionWidth;
+                this.Height = intersectionHeight;
+            }
+
+            return intersectionArea / unionArea;
+        }
+
+
+        public override string ToString()
+        {
+            return $"{Confidence:0.00},{Center_x:0},{Center_y:0},{Width:0},{Height:0}";
+        }
     }
 
     public class PoseKeyPoints
     {
         public KeyPoint Nose;
-        public KeyPoint LeftEye;
-        public KeyPoint RightEye;
-        public KeyPoint LeftEar;
-        public KeyPoint RightEar;
-        public KeyPoint LeftShoulder;
-        public KeyPoint RightShoulder;
-        public KeyPoint LeftElbow;
-        public KeyPoint RightElbow;
-        public KeyPoint LeftWrist;
-        public KeyPoint RightWrist;
-        public KeyPoint LeftHip;
-        public KeyPoint RightHip;
-        public KeyPoint LeftKnee;
-        public KeyPoint RightKnee;
-        public KeyPoint LeftAnkle;
-        public KeyPoint RightAnkle;
+        public KeyPoint EyeLeft;
+        public KeyPoint EyeRight;
+        public KeyPoint EarLeft;
+        public KeyPoint EarRight;
+        public KeyPoint ShoulderLeft;
+        public KeyPoint ShoulderRight;
+        public KeyPoint ElbowLeft;
+        public KeyPoint ElbowRight;
+        public KeyPoint WristLeft;
+        public KeyPoint WristRight;
+        public KeyPoint HipLeft;
+        public KeyPoint HipRight;
+        public KeyPoint KneeLeft;
+        public KeyPoint KneeRight;
+        public KeyPoint AnkleLeft;
+        public KeyPoint AnkleRight;
 
-        public PoseKeyPoints(float[] outputArray, int startIndex)
+        public PoseKeyPoints(float[] output, int startIndex)
         {
-            Nose = new KeyPoint(outputArray, startIndex, 0);
-            LeftEye = new KeyPoint(outputArray, startIndex, 1);
-            RightEye = new KeyPoint(outputArray, startIndex, 2);
-            LeftEar = new KeyPoint(outputArray, startIndex, 3);
-            RightEar = new KeyPoint(outputArray, startIndex, 4);
-            LeftShoulder = new KeyPoint(outputArray, startIndex, 5);
-            RightShoulder = new KeyPoint(outputArray, startIndex, 6);
-            LeftElbow = new KeyPoint(outputArray, startIndex, 7);
-            RightElbow = new KeyPoint(outputArray, startIndex, 8);
-            LeftWrist = new KeyPoint(outputArray, startIndex, 9);
-            RightWrist = new KeyPoint(outputArray, startIndex, 10);
-            LeftHip = new KeyPoint(outputArray, startIndex, 11);
-            RightHip = new KeyPoint(outputArray, startIndex, 12);
-            LeftKnee = new KeyPoint(outputArray, startIndex, 13);
-            RightKnee = new KeyPoint(outputArray, startIndex, 14);
-            LeftAnkle = new KeyPoint(outputArray, startIndex, 15);
-            RightAnkle = new KeyPoint(outputArray, startIndex, 16);
+            Nose = new KeyPoint(output, startIndex, 0);
+            EyeLeft = new KeyPoint(output, startIndex, 1);
+            EyeRight = new KeyPoint(output, startIndex, 2);
+            EarLeft = new KeyPoint(output, startIndex, 3);
+            EarRight = new KeyPoint(output, startIndex, 4);
+            ShoulderLeft = new KeyPoint(output, startIndex, 5);
+            ShoulderRight = new KeyPoint(output, startIndex, 6);
+            ElbowLeft = new KeyPoint(output, startIndex, 7);
+            ElbowRight = new KeyPoint(output, startIndex, 8);
+            WristLeft = new KeyPoint(output, startIndex, 9);
+            WristRight = new KeyPoint(output, startIndex, 10);
+            HipLeft = new KeyPoint(output, startIndex, 11);
+            HipRight = new KeyPoint(output, startIndex, 12);
+            KneeLeft = new KeyPoint(output, startIndex, 13);
+            KneeRight = new KeyPoint(output, startIndex, 14);
+            AnkleLeft = new KeyPoint(output, startIndex, 15);
+            AnkleRight = new KeyPoint(output, startIndex, 16);
         }
+
+
+        public void drawBone(Graphics g, float confidenceLevel = 0.6f)
+        {
+            Pen p = new Pen(Color.Blue, 2);
+
+            if (Nose.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.GreenYellow, Nose.GetRectangle());
+            if (EyeLeft.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightBlue, EyeLeft.GetRectangle());
+            if (EyeRight.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightPink, EyeRight.GetRectangle());
+            if (EarLeft.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightBlue, EarLeft.GetRectangle());
+            if (EarRight.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightPink, EarRight.GetRectangle());
+            if (ShoulderLeft.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightBlue, ShoulderLeft.GetRectangle());
+            if (ShoulderRight.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightPink, ShoulderRight.GetRectangle());
+            if (ElbowLeft.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightBlue, ElbowLeft.GetRectangle());
+            if (ElbowRight.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightPink, ElbowRight.GetRectangle());
+            if (WristLeft.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightBlue, WristLeft.GetRectangle());
+            if (WristRight.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightPink, WristRight.GetRectangle());
+            if (HipLeft.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightBlue, HipLeft.GetRectangle());
+            if (HipRight.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightPink, HipRight.GetRectangle());
+            if (KneeLeft.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightBlue, KneeLeft.GetRectangle());
+            if (KneeRight.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightPink, KneeRight.GetRectangle());
+            if (AnkleLeft.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightBlue, AnkleLeft.GetRectangle());
+            if (AnkleRight.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightPink, AnkleRight.GetRectangle());
+
+
+            if (Nose.Confidence >= confidenceLevel && EyeLeft.Confidence >= confidenceLevel)
+                g.DrawLine(p, Nose.Position, EyeLeft.Position);
+            if (EyeLeft.Confidence >= confidenceLevel && EarLeft.Confidence >= confidenceLevel)
+                g.DrawLine(p, EyeLeft.Position, EarLeft.Position);
+            if (Nose.Confidence >= confidenceLevel && EyeRight.Confidence >= confidenceLevel)
+                g.DrawLine(p, Nose.Position, EyeRight.Position);
+            if (EyeRight.Confidence >= confidenceLevel && EarRight.Confidence >= confidenceLevel)
+                g.DrawLine(p, EyeRight.Position, EarRight.Position);
+            if (ShoulderLeft.Confidence >= confidenceLevel && ShoulderRight.Confidence >= confidenceLevel)
+                g.DrawLine(p, ShoulderLeft.Position, ShoulderRight.Position);
+            if (ShoulderLeft.Confidence >= confidenceLevel && ElbowLeft.Confidence >= confidenceLevel)
+                g.DrawLine(p, ShoulderLeft.Position, ElbowLeft.Position);
+            if (ElbowLeft.Confidence >= confidenceLevel && WristLeft.Confidence >= confidenceLevel)
+                g.DrawLine(p, ElbowLeft.Position, WristLeft.Position);
+            if (ShoulderRight.Confidence >= confidenceLevel && ElbowRight.Confidence >= confidenceLevel)
+                g.DrawLine(p, ShoulderRight.Position, ElbowRight.Position);
+            if (ElbowRight.Confidence >= confidenceLevel && WristRight.Confidence >= confidenceLevel)
+                g.DrawLine(p, ElbowRight.Position, WristRight.Position);
+            if (HipLeft.Confidence >= confidenceLevel && HipRight.Confidence >= confidenceLevel)
+                g.DrawLine(p, HipLeft.Position, HipRight.Position);
+            if (HipLeft.Confidence >= confidenceLevel && KneeLeft.Confidence >= confidenceLevel)
+                g.DrawLine(p, HipLeft.Position, KneeLeft.Position);
+            if (KneeLeft.Confidence >= confidenceLevel && AnkleLeft.Confidence >= confidenceLevel)
+                g.DrawLine(p, KneeLeft.Position, AnkleLeft.Position);
+            if (HipRight.Confidence >= confidenceLevel && KneeRight.Confidence >= confidenceLevel)
+                g.DrawLine(p, HipRight.Position, KneeRight.Position);
+            if (KneeRight.Confidence >= confidenceLevel && AnkleRight.Confidence >= confidenceLevel)
+                g.DrawLine(p, KneeRight.Position, AnkleRight.Position);
+
+        }
+
+        public override string ToString()
+        {
+            return $"{Nose.Confidence:0.00}, {EyeLeft.Confidence:0.00}, {EyeRight.Confidence:0.00}, " +
+                   $"{EarLeft.Confidence:0.00}, {EarRight.Confidence:0.00}, {ShoulderLeft.Confidence:0.00}, " +
+                   $"{ShoulderRight.Confidence:0.00}, {ElbowLeft.Confidence:0.00}, {ElbowRight.Confidence:0.00}, " +
+                   $"{WristLeft.Confidence:0.00}, {WristRight.Confidence:0.00}, {HipLeft.Confidence:0.00}, " +
+                   $"{HipRight.Confidence:0.00}, {KneeLeft.Confidence:0.00}, {KneeRight.Confidence:0.00}, " +
+                   $"{AnkleLeft.Confidence:0.00}, {AnkleRight.Confidence:0.00}";
+        }
+
     }
 
     public class KeyPoint
@@ -180,7 +384,15 @@ namespace YoloPoseOnnxHandle
         public float X;
         public float Y;
         public float Confidence;
-        public int stride = 8400;
+        private int stride = 8400;
+
+        public Point Position { get { return new Point((int)X, (int)Y); } }
+
+        public Rectangle GetRectangle(float diameter = 12)
+        {
+            float radius = (diameter / 2.0f);
+            return new Rectangle((int)(X - radius), (int)(Y - radius), (int)diameter, (int)diameter);
+        }
 
         public KeyPoint(float[] output, int startIndex, int keyIndex)
         {

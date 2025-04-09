@@ -31,7 +31,6 @@ namespace onnxNote
         {
             InitializeComponent();
             thisExeDirPath = Path.GetDirectoryName(Application.ExecutablePath);
-
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -50,8 +49,6 @@ namespace onnxNote
                     WinFormStringCnv.setControlFromString(this, File.ReadAllText(paramFilename));
                 }
             }
-
-            
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
@@ -96,12 +93,24 @@ namespace onnxNote
         {
             if (p.Image != null) p.Image.Dispose();
             p.Image = bitmap;
+
+            if (p.Image != null)
+            {
+                Bitmap bitmapW = (Bitmap)(p.Image);
+                yoloPoseModelHandle.Predicte(bitmapW);
+
+                using (Graphics g = Graphics.FromImage(pictureBox.Image))
+                {
+                    yoloPoseModelHandle.drawBBoxs(g);
+                    yoloPoseModelHandle.drawBones(g);
+                }
+            }
         }
 
         private void button_OpenMovieFile_Click(object sender, EventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog();
-            ofd.Filter = "MP4|*.mp4|PNG|*.png";
+            ofd.Filter = "PNG|*.png|MP4|*.mp4";
 
             if (ofd.ShowDialog() != DialogResult.OK) return;
             if (capture != null) capture.Dispose();
@@ -245,17 +254,5 @@ namespace onnxNote
         }
 
         YoloPoseModelHandle yoloPoseModelHandle;
-
-        private void pictureBox_Paint(object sender, PaintEventArgs e)
-        {
-            PictureBox p  = (PictureBox)sender;
-            if (p.Image != null)
-            {
-                Bitmap bitmap = (Bitmap)(p.Image);
-
-                yoloPoseModelHandle.Predicte(bitmap);
-                
-            }
-        }
     }
 }
