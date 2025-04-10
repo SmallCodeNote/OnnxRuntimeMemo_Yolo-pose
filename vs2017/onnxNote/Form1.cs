@@ -111,11 +111,13 @@ namespace onnxNote
         {
             OpenFileDialog ofd = new OpenFileDialog();
             ofd.Filter = "PNG|*.png|MP4|*.mp4";
+            ofd.FilterIndex = 2;
 
             if (ofd.ShowDialog() != DialogResult.OK) return;
             if (capture != null) capture.Dispose();
 
-            if (Path.GetExtension(ofd.FileName) == "mp4")
+            string ext = Path.GetExtension(ofd.FileName);
+            if (ext == ".mp4")
             {
                 capture = new VideoCapture(ofd.FileName);
                 trackBar_frameIndex.Maximum = capture.FrameCount;

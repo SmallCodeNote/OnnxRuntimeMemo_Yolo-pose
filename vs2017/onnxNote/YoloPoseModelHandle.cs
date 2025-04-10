@@ -300,42 +300,6 @@ namespace YoloPoseOnnxHandle
         {
             Pen p = new Pen(Color.Blue, 2);
 
-            if (Nose.Confidence >= confidenceLevel)
-                g.FillEllipse(Brushes.GreenYellow, Nose.GetRectangle());
-            if (EyeLeft.Confidence >= confidenceLevel)
-                g.FillEllipse(Brushes.LightBlue, EyeLeft.GetRectangle());
-            if (EyeRight.Confidence >= confidenceLevel)
-                g.FillEllipse(Brushes.LightPink, EyeRight.GetRectangle());
-            if (EarLeft.Confidence >= confidenceLevel)
-                g.FillEllipse(Brushes.LightBlue, EarLeft.GetRectangle());
-            if (EarRight.Confidence >= confidenceLevel)
-                g.FillEllipse(Brushes.LightPink, EarRight.GetRectangle());
-            if (ShoulderLeft.Confidence >= confidenceLevel)
-                g.FillEllipse(Brushes.LightBlue, ShoulderLeft.GetRectangle());
-            if (ShoulderRight.Confidence >= confidenceLevel)
-                g.FillEllipse(Brushes.LightPink, ShoulderRight.GetRectangle());
-            if (ElbowLeft.Confidence >= confidenceLevel)
-                g.FillEllipse(Brushes.LightBlue, ElbowLeft.GetRectangle());
-            if (ElbowRight.Confidence >= confidenceLevel)
-                g.FillEllipse(Brushes.LightPink, ElbowRight.GetRectangle());
-            if (WristLeft.Confidence >= confidenceLevel)
-                g.FillEllipse(Brushes.LightBlue, WristLeft.GetRectangle());
-            if (WristRight.Confidence >= confidenceLevel)
-                g.FillEllipse(Brushes.LightPink, WristRight.GetRectangle());
-            if (HipLeft.Confidence >= confidenceLevel)
-                g.FillEllipse(Brushes.LightBlue, HipLeft.GetRectangle());
-            if (HipRight.Confidence >= confidenceLevel)
-                g.FillEllipse(Brushes.LightPink, HipRight.GetRectangle());
-            if (KneeLeft.Confidence >= confidenceLevel)
-                g.FillEllipse(Brushes.LightBlue, KneeLeft.GetRectangle());
-            if (KneeRight.Confidence >= confidenceLevel)
-                g.FillEllipse(Brushes.LightPink, KneeRight.GetRectangle());
-            if (AnkleLeft.Confidence >= confidenceLevel)
-                g.FillEllipse(Brushes.LightBlue, AnkleLeft.GetRectangle());
-            if (AnkleRight.Confidence >= confidenceLevel)
-                g.FillEllipse(Brushes.LightPink, AnkleRight.GetRectangle());
-
-
             if (Nose.Confidence >= confidenceLevel && EyeLeft.Confidence >= confidenceLevel)
                 g.DrawLine(p, Nose.Position, EyeLeft.Position);
             if (EyeLeft.Confidence >= confidenceLevel && EarLeft.Confidence >= confidenceLevel)
@@ -364,6 +328,42 @@ namespace YoloPoseOnnxHandle
                 g.DrawLine(p, HipRight.Position, KneeRight.Position);
             if (KneeRight.Confidence >= confidenceLevel && AnkleRight.Confidence >= confidenceLevel)
                 g.DrawLine(p, KneeRight.Position, AnkleRight.Position);
+
+
+            if (AnkleRight.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightPink, AnkleRight.GetRectangle());
+            if (AnkleLeft.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightBlue, AnkleLeft.GetRectangle());
+            if (KneeRight.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightPink, KneeRight.GetRectangle());
+            if (KneeLeft.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightBlue, KneeLeft.GetRectangle());
+            if (HipRight.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightPink, HipRight.GetRectangle());
+            if (HipLeft.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightBlue, HipLeft.GetRectangle());
+            if (WristRight.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightPink, WristRight.GetRectangle());
+            if (WristLeft.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightBlue, WristLeft.GetRectangle());
+            if (ElbowRight.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightPink, ElbowRight.GetRectangle());
+            if (ElbowLeft.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightBlue, ElbowLeft.GetRectangle());
+            if (ShoulderRight.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightPink, ShoulderRight.GetRectangle());
+            if (ShoulderLeft.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightBlue, ShoulderLeft.GetRectangle());
+            if (EarRight.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightPink, EarRight.GetRectangle());
+            if (EarLeft.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightBlue, EarLeft.GetRectangle());
+            if (EyeRight.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightPink, EyeRight.GetRectangle());
+            if (EyeLeft.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.LightBlue, EyeLeft.GetRectangle());
+            if (Nose.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.GreenYellow, Nose.GetRectangle());
 
         }
 
