@@ -91,7 +91,6 @@ namespace onnxNote
 
         private void pictureBoxUpdate(PictureBox p, Bitmap bitmap)
         {
-
             if (p.InvokeRequired)
             {
                 p.Invoke(new Action(() => pictureBoxUpdate(p, bitmap)));
@@ -100,16 +99,8 @@ namespace onnxNote
             else
             {
                 if (bitmap == null) return;
-                /*
-                yoloPoseModelHandle.Predicte(bitmap);
-                using (Graphics g = Graphics.FromImage(bitmap))
-                {
-                    yoloPoseModelHandle.drawBBoxs(g);
-                    yoloPoseModelHandle.drawBones(g);
-                }
-                */
                 if (p.Image != null) p.Image.Dispose();
-                p.Image = bitmap;
+                p.Image = new Bitmap( bitmap);
             }
         }
 
@@ -323,6 +314,7 @@ namespace onnxNote
         {
             BackgroundWorker worker = (BackgroundWorker)sender;
 
+            List<string> NoseKeyPoint = new List<string>();
             List<string> EyeKeyPoint = new List<string>();
             List<string> EarKeyPoint = new List<string>();
             List<string> ShoulderKeyPoint = new List<string>();
@@ -342,23 +334,35 @@ namespace onnxNote
             string pathKnee = Path.Combine(masterPath, "Knee.csv");
             string pathAnkle = Path.Combine(masterPath, "Ankle.csv");
 
+            string lineNose = "";
+            string lineEye = "";
+            string lineEar = "";
+            string lineShoulder = "";
+            string lineElbow = "";
+            string lineWrist = "";
+            string lineHip = "";
+            string lineKnee = "";
+            string lineAnkle = "";
+
             string videoPath = Path.Combine(masterPath, Path.GetFileNameWithoutExtension(masterPath) + "_pose.mov");
 
             if (!Directory.Exists(masterPath)) { Directory.CreateDirectory(masterPath); };
 
+
             using (VideoWriter video = new VideoWriter(videoPath, FourCC.MP4V, 30, new OpenCvSharp.Size(640, 360)))
             using (Mat frame = new Mat())
             {
+
                 if (video.IsOpened())
                 {
                     Console.WriteLine("video not opened");
-
                 }
+
                 while (capture.Read(frame) && !frame.Empty())
                 {
                     Bitmap bitmap = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(frame);
-                    drawPose(bitmap);
 
+                    drawPose(bitmap);
                     using (Mat writeFrame = BitmapConverter.ToMat(bitmap))
                     {
                         video.Write(writeFrame);
@@ -366,52 +370,61 @@ namespace onnxNote
 
                     pictureBoxUpdate(pictureBox, bitmap);
 
-
                     string posFrame = capture.PosFrames.ToString();
                     progressReport = posFrame + " / " + capture.FrameCount.ToString();
 
-                    File.AppendAllText(pathNose, "\r\n" + posFrame);
-                    File.AppendAllText(pathEye, "\r\n" + posFrame);
-                    File.AppendAllText(pathEar, "\r\n" + posFrame);
-                    File.AppendAllText(pathShoulder, "\r\n" + posFrame);
-                    File.AppendAllText(pathElbow, "\r\n" + posFrame);
-                    File.AppendAllText(pathWrist, "\r\n" + posFrame);
-                    File.AppendAllText(pathHip, "\r\n" + posFrame);
-                    File.AppendAllText(pathKnee, "\r\n" + posFrame);
-                    File.AppendAllText(pathAnkle, "\r\n" + posFrame);
+                    lineNose = posFrame;
+                    lineEye = posFrame;
+                    lineEar = posFrame;
+                    lineShoulder = posFrame;
+                    lineElbow = posFrame;
+                    lineWrist = posFrame;
+                    lineHip = posFrame;
+                    lineKnee = posFrame;
+                    lineAnkle = posFrame;
 
                     foreach (var pose in yoloPoseModelHandle.PoseInfos)
                     {
-                        File.AppendAllText(pathNose, "," + pose.KeyPoints.Nose.ToString());
-                        File.AppendAllText(pathEye, "," + pose.KeyPoints.Eye().ToString());
-                        File.AppendAllText(pathEar, "," + pose.KeyPoints.Ear().ToString());
-                        File.AppendAllText(pathShoulder, "," + pose.KeyPoints.Shoulder().ToString());
-                        File.AppendAllText(pathElbow, "," + pose.KeyPoints.Elbow().ToString());
-                        File.AppendAllText(pathWrist, "," + pose.KeyPoints.Wrist().ToString());
-                        File.AppendAllText(pathHip, "," + pose.KeyPoints.Hip().ToString());
-                        File.AppendAllText(pathKnee, "," + pose.KeyPoints.Knee().ToString());
-                        File.AppendAllText(pathAnkle, "," + pose.KeyPoints.Ankle().ToString());
-
-                        EyeKeyPoint.Add(pose.KeyPoints.Eye().ToString());
-                        EarKeyPoint.Add(pose.KeyPoints.Ear().ToString());
-                        ShoulderKeyPoint.Add(pose.KeyPoints.Shoulder().ToString());
-                        ElbowKeyPoint.Add(pose.KeyPoints.Elbow().ToString());
-                        WristKeyPoint.Add(pose.KeyPoints.Wrist().ToString());
-                        HipKeyPoint.Add(pose.KeyPoints.Hip().ToString());
-                        KneeKeyPoint.Add(pose.KeyPoints.Knee().ToString());
-                        AnkleKeyPoint.Add(pose.KeyPoints.Ankle().ToString());
+                        lineNose += "," + pose.KeyPoints.Nose.ToString();
+                        lineEye += "," + pose.KeyPoints.Eye().ToString();
+                        lineEar += "," + pose.KeyPoints.Ear().ToString();
+                        lineShoulder += "," + pose.KeyPoints.Shoulder().ToString();
+                        lineElbow += "," + pose.KeyPoints.Elbow().ToString();
+                        lineWrist += "," + pose.KeyPoints.Wrist().ToString();
+                        lineHip += "," + pose.KeyPoints.Hip().ToString();
+                        lineKnee += "," + pose.KeyPoints.Knee().ToString();
+                        lineAnkle += "," + pose.KeyPoints.Ankle().ToString();
                     }
 
+                    NoseKeyPoint.Add(lineNose);
+                    EyeKeyPoint.Add(lineEye);
+                    EarKeyPoint.Add(lineEar);
+                    ShoulderKeyPoint.Add(lineShoulder);
+                    ElbowKeyPoint.Add(lineElbow);
+                    WristKeyPoint.Add(lineWrist);
+                    HipKeyPoint.Add(lineHip);
+                    KneeKeyPoint.Add(lineKnee);
+                    AnkleKeyPoint.Add(lineAnkle);
+                    
                     if (worker.CancellationPending)
                     {
                         e.Cancel = true;
-                        video.Release();
-                        return;
+                        break;
                     }
                     worker.ReportProgress(0);
                 }
 
                 video.Release();
+
+                File.AppendAllLines(pathNose, NoseKeyPoint);
+                File.AppendAllLines(pathEye, EyeKeyPoint);
+                File.AppendAllLines(pathEar, EarKeyPoint);
+                File.AppendAllLines(pathShoulder, ShoulderKeyPoint);
+                File.AppendAllLines(pathElbow, ElbowKeyPoint);
+                File.AppendAllLines(pathWrist, WristKeyPoint);
+                File.AppendAllLines(pathHip, HipKeyPoint);
+                File.AppendAllLines(pathKnee, KneeKeyPoint);
+                File.AppendAllLines(pathAnkle, AnkleKeyPoint);
 
             }
         }
