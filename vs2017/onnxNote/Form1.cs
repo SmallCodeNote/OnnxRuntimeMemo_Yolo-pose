@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 
 using System.IO;
+using System.Collections.Concurrent;
 
 using WinFormStringCnvClass;
 using OpenCvSharp;
@@ -310,6 +311,8 @@ namespace onnxNote
             }
         }
 
+        ConcurrentQueue<Action> taskQueue;
+
         private void backgroundWorker_posePredict_DoWork(object sender, DoWorkEventArgs e)
         {
             BackgroundWorker worker = (BackgroundWorker)sender;
@@ -352,7 +355,6 @@ namespace onnxNote
             using (VideoWriter video = new VideoWriter(videoPath, FourCC.MP4V, 30, new OpenCvSharp.Size(640, 360)))
             using (Mat frame = new Mat())
             {
-
                 if (video.IsOpened())
                 {
                     Console.WriteLine("video not opened");
@@ -361,13 +363,11 @@ namespace onnxNote
                 while (capture.Read(frame) && !frame.Empty())
                 {
                     Bitmap bitmap = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(frame);
-
                     drawPose(bitmap);
                     using (Mat writeFrame = BitmapConverter.ToMat(bitmap))
                     {
                         video.Write(writeFrame);
                     }
-
                     pictureBoxUpdate(pictureBox, bitmap);
 
                     string posFrame = capture.PosFrames.ToString();
