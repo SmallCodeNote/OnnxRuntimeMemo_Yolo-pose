@@ -91,26 +91,38 @@ namespace onnxNote
 
         private void pictureBoxUpdate(PictureBox p, Bitmap bitmap)
         {
+
             if (p.InvokeRequired)
             {
                 p.Invoke(new Action(() => pictureBoxUpdate(p, bitmap)));
                 return;
             }
-
-            if (p.Image != null) p.Image.Dispose();
-            p.Image = bitmap;
-
-            if (p.Image != null)
+            else
             {
-                Bitmap bitmapW = (Bitmap)(p.Image);
-                yoloPoseModelHandle.Predicte(bitmapW);
-
-                using (Graphics g = Graphics.FromImage(p.Image))
+                if (bitmap == null) return;
+                /*
+                yoloPoseModelHandle.Predicte(bitmap);
+                using (Graphics g = Graphics.FromImage(bitmap))
                 {
                     yoloPoseModelHandle.drawBBoxs(g);
                     yoloPoseModelHandle.drawBones(g);
                 }
+                */
+                if (p.Image != null) p.Image.Dispose();
+                p.Image = bitmap;
             }
+        }
+
+
+        private void drawPose(Bitmap bitmap)
+        {
+            yoloPoseModelHandle.Predicte(bitmap);
+            using (Graphics g = Graphics.FromImage(bitmap))
+            {
+                yoloPoseModelHandle.drawBBoxs(g);
+                yoloPoseModelHandle.drawBones(g);
+            }
+
         }
 
         private void button_OpenMovieFile_Click(object sender, EventArgs e)
@@ -146,6 +158,7 @@ namespace onnxNote
                     if (!capture.Read(frame) || frame.Empty()) return;
 
                     Bitmap bitmap = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(frame);
+                    drawPose(bitmap);
                     pictureBoxUpdate(pictureBox, bitmap);
                     label_FrameCount.Text = trackBar_frameIndex.Value.ToString() + " / " + capture.FrameCount.ToString();
                 }
@@ -182,6 +195,7 @@ namespace onnxNote
                     if (!capture.Read(frame) || frame.Empty()) return;
 
                     Bitmap bitmap = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(frame);
+                    drawPose(bitmap);
                     pictureBoxUpdate(pictureBox, bitmap);
 
 
@@ -264,6 +278,7 @@ namespace onnxNote
         YoloPoseModelHandle yoloPoseModelHandle;
         string masterPath = "";
 
+
         private void button_Save_Click(object sender, EventArgs e)
         {
 
@@ -300,7 +315,7 @@ namespace onnxNote
             }
             else
             {
-
+                backgroundWorker_posePredict.CancelAsync();
             }
         }
 
@@ -317,7 +332,6 @@ namespace onnxNote
             List<string> KneeKeyPoint = new List<string>();
             List<string> AnkleKeyPoint = new List<string>();
 
-
             string pathNose = Path.Combine(masterPath, "Nose.csv");
             string pathEye = Path.Combine(masterPath, "Eye.csv");
             string pathEar = Path.Combine(masterPath, "Ear.csv");
@@ -328,18 +342,33 @@ namespace onnxNote
             string pathKnee = Path.Combine(masterPath, "Knee.csv");
             string pathAnkle = Path.Combine(masterPath, "Ankle.csv");
 
+            string videoPath = Path.Combine(masterPath, Path.GetFileNameWithoutExtension(masterPath) + "_pose.mov");
+
             if (!Directory.Exists(masterPath)) { Directory.CreateDirectory(masterPath); };
 
+            using (VideoWriter video = new VideoWriter(videoPath, FourCC.MP4V, 30, new OpenCvSharp.Size(640, 360)))
             using (Mat frame = new Mat())
             {
+                if (video.IsOpened())
+                {
+                    Console.WriteLine("video not opened");
+
+                }
                 while (capture.Read(frame) && !frame.Empty())
                 {
                     Bitmap bitmap = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(frame);
+                    drawPose(bitmap);
+
+                    using (Mat writeFrame = BitmapConverter.ToMat(bitmap))
+                    {
+                        video.Write(writeFrame);
+                    }
+
                     pictureBoxUpdate(pictureBox, bitmap);
+
 
                     string posFrame = capture.PosFrames.ToString();
                     progressReport = posFrame + " / " + capture.FrameCount.ToString();
-
 
                     File.AppendAllText(pathNose, "\r\n" + posFrame);
                     File.AppendAllText(pathEye, "\r\n" + posFrame);
@@ -350,9 +379,6 @@ namespace onnxNote
                     File.AppendAllText(pathHip, "\r\n" + posFrame);
                     File.AppendAllText(pathKnee, "\r\n" + posFrame);
                     File.AppendAllText(pathAnkle, "\r\n" + posFrame);
-
-
-
 
                     foreach (var pose in yoloPoseModelHandle.PoseInfos)
                     {
@@ -379,10 +405,14 @@ namespace onnxNote
                     if (worker.CancellationPending)
                     {
                         e.Cancel = true;
+                        video.Release();
                         return;
                     }
                     worker.ReportProgress(0);
                 }
+
+                video.Release();
+
             }
         }
 
@@ -390,6 +420,7 @@ namespace onnxNote
         private void backgroundWorker_posePredict_ProgressChanged(object sender, ProgressChangedEventArgs e)
         {
             label_FrameCount.Text = progressReport;
+            label_FrameCount.Refresh();
         }
 
         private void backgroundWorker_posePredict_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
