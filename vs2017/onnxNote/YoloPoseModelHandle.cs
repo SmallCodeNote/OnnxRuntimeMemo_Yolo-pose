@@ -57,17 +57,15 @@ namespace YoloPoseOnnxHandle
             var results = session.Run(inputs);
             var output = results.First().AsEnumerable<float>().ToArray();
 
-            PoseInfoSet(output);
-
+            PoseInfoRead(output);
             results.Dispose();
-
         }
 
         Tensor<float> ConvertBitmapToTensor(Bitmap bitmap, int width = 640, int height = 640)
         {
             var tensor = new DenseTensor<float>(new[] { 1, 3, height, width });
-            int widthMax = bitmap.Width;
-            int heightMax = bitmap.Height;
+            int widthMax = Math.Min(bitmap.Width,width);
+            int heightMax = Math.Min(bitmap.Height,height);
 
             for (int y = 0; y < heightMax; y++)
             {
@@ -87,7 +85,7 @@ namespace YoloPoseOnnxHandle
             return SessionInputName;
         }
 
-        public void PoseInfoSet(float[] outputArray, float confidenceThreshold = 0.6f)
+        public void PoseInfoRead(float[] outputArray, float confidenceThreshold = 0.6f)
         {
             PoseInfos = new List<PoseInfo>();
             for (int i = 0; i < modelOutputStride; i++)
@@ -142,13 +140,12 @@ namespace YoloPoseOnnxHandle
         }
     }
 
-
     public class PoseInfoSet
     {
         public List<PoseInfo> PoseInfos;
         private int stride = 8400;
 
-        public PoseInfoSet(float[] outputArray, float confidenceThreshold = 0.8f)
+        public PoseInfoSet(float[] outputArray, float confidenceThreshold = 0.6f)
         {
             PoseInfos = new List<PoseInfo>();
             for (int i = 0; i < stride; i++)
@@ -156,7 +153,26 @@ namespace YoloPoseOnnxHandle
                 PoseInfo pi = new PoseInfo(outputArray, i);
                 if (pi.Bbox.Confidence >= confidenceThreshold)
                 {
-                    PoseInfos.Add(pi);
+                    if (PoseInfos.Count > 0)
+                    {
+                        bool update = false;
+
+                        for (int index = 0; index < PoseInfos.Count; index++)
+                        {
+                            var item = PoseInfos[index];
+                            if (item.Bbox.Overlap(pi.Bbox) >= 0.8)
+                            {
+                                item.Bbox.OverlapUpdate(pi.Bbox);
+                                update = true;
+                            }
+                        }
+
+                        if (!update) PoseInfos.Add(pi);
+                    }
+                    else
+                    {
+                        PoseInfos.Add(pi);
+                    }
                 }
             }
         }
@@ -274,6 +290,54 @@ namespace YoloPoseOnnxHandle
         public KeyPoint AnkleLeft;
         public KeyPoint AnkleRight;
 
+
+
+        private KeyPoint KeyPointSum(KeyPoint p1, KeyPoint p2, float Confidence)
+        {
+            if (p1.Confidence >= Confidence && p2.Confidence >= Confidence)
+            {
+                return new KeyPoint((p1.X + p2.X) * 0.5f, (p1.Y + p2.Y) * 0.5f, p1.Confidence < p2.Confidence ? p1.Confidence : p2.Confidence);
+            }
+            else if (p1.Confidence >= Confidence)
+            {
+                return new KeyPoint(p1.X, p1.Y, p1.Confidence );
+            }
+            else if (p2.Confidence >= Confidence)
+            {
+                return new KeyPoint(p2.X, p2.Y, p2.Confidence);
+            }
+
+
+            return new KeyPoint();
+        }
+
+        public KeyPoint Eye(float confidenceLevel) { return KeyPointSum(EyeLeft, EyeRight, confidenceLevel); }
+        public KeyPoint Ear(float confidenceLevel) { return KeyPointSum(EarLeft, EarRight, confidenceLevel); }
+        public KeyPoint Shoulder(float confidenceLevel) { return KeyPointSum(ShoulderLeft, ShoulderRight, confidenceLevel); }
+        public KeyPoint Elbow(float confidenceLevel) { return KeyPointSum(ElbowLeft, ElbowRight, confidenceLevel); }
+        public KeyPoint Wrist(float confidenceLevel) { return KeyPointSum(WristLeft, WristRight, confidenceLevel); }
+        public KeyPoint Hip(float confidenceLevel) { return KeyPointSum(HipLeft, HipRight, confidenceLevel); }
+        public KeyPoint Knee(float confidenceLevel) { return KeyPointSum(KneeLeft, KneeRight, confidenceLevel); }
+        public KeyPoint Ankle(float confidenceLevel) { return KeyPointSum(AnkleLeft, AnkleRight, confidenceLevel); }
+
+        public KeyPoint Eye() { return KeyPointSum(EyeLeft, EyeRight, confidenceLevel_Eye); }
+        public KeyPoint Ear() { return KeyPointSum(EarLeft, EarRight, confidenceLevel_Ear); }
+        public KeyPoint Shoulder() { return KeyPointSum(ShoulderLeft, ShoulderRight, confidenceLevel_Shoulder); }
+        public KeyPoint Elbow() { return KeyPointSum(ElbowLeft, ElbowRight, confidenceLevel_Elbow); }
+        public KeyPoint Wrist() { return KeyPointSum(WristLeft, WristRight, confidenceLevel_Wrist); }
+        public KeyPoint Hip() { return KeyPointSum(HipLeft, HipRight, confidenceLevel_Hip); }
+        public KeyPoint Knee() { return KeyPointSum(KneeLeft, KneeRight, confidenceLevel_Knee); }
+        public KeyPoint Ankle() { return KeyPointSum(AnkleLeft, AnkleRight, confidenceLevel_Ankle); }
+
+        public float confidenceLevel_Eye = 0.6f;
+        public float confidenceLevel_Ear = 0.6f;
+        public float confidenceLevel_Shoulder = 0.6f;
+        public float confidenceLevel_Elbow = 0.6f;
+        public float confidenceLevel_Wrist = 0.6f;
+        public float confidenceLevel_Hip = 0.6f;
+        public float confidenceLevel_Knee = 0.6f;
+        public float confidenceLevel_Ankle = 0.6f;
+
         public PoseKeyPoints(float[] output, int startIndex)
         {
             Nose = new KeyPoint(output, startIndex, 0);
@@ -296,7 +360,7 @@ namespace YoloPoseOnnxHandle
         }
 
 
-        public void drawBone(Graphics g, float confidenceLevel = 0.6f,float diameter = 6)
+        public void drawBone(Graphics g, float confidenceLevel = 0.6f, float diameter = 6)
         {
             Pen p = new Pen(Color.Blue, 2);
 
@@ -400,6 +464,26 @@ namespace YoloPoseOnnxHandle
             this.Y = output[startIndex + stride * (keyIndex * 3 + 6)];
             this.Confidence = output[startIndex + stride * (keyIndex * 3 + 7)];
         }
+
+        public KeyPoint(float X, float Y, float Confidence)
+        {
+            this.X = X;
+            this.Y = Y;
+            this.Confidence = Confidence;
+        }
+
+        public KeyPoint()
+        {
+            this.X = 0;
+            this.Y = 0;
+            this.Confidence = 0;
+        }
+
+        public override string ToString()
+        {
+            return $"{X:0},{Y:0},{Confidence:0.00}";
+        }
+
     }
 
 }

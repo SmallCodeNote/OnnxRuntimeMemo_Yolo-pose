@@ -48,6 +48,8 @@
             this.button_OpenModelFile = new System.Windows.Forms.Button();
             this.label_modelPath = new System.Windows.Forms.Label();
             this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.button_Save = new System.Windows.Forms.Button();
+            this.backgroundWorker_posePredict = new System.ComponentModel.BackgroundWorker();
             this.tabControl1.SuspendLayout();
             this.tabPage_YOLOPOSE.SuspendLayout();
             this.panel_Main.SuspendLayout();
@@ -117,6 +119,7 @@
             // panel1
             // 
             this.panel1.AutoScroll = true;
+            this.panel1.Controls.Add(this.button_Save);
             this.panel1.Controls.Add(this.button_frameForward10);
             this.panel1.Controls.Add(this.button_frameForward05);
             this.panel1.Controls.Add(this.button_frameForward01);
@@ -274,8 +277,27 @@
             this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
             this.tabPage2.Size = new System.Drawing.Size(782, 784);
             this.tabPage2.TabIndex = 1;
-            this.tabPage2.Text = "tabPage2";
+            this.tabPage2.Text = "Setting";
             this.tabPage2.UseVisualStyleBackColor = true;
+            // 
+            // button_Save
+            // 
+            this.button_Save.Dock = System.Windows.Forms.DockStyle.Right;
+            this.button_Save.Location = new System.Drawing.Point(650, 0);
+            this.button_Save.Name = "button_Save";
+            this.button_Save.Size = new System.Drawing.Size(63, 30);
+            this.button_Save.TabIndex = 8;
+            this.button_Save.Text = "Save";
+            this.button_Save.UseVisualStyleBackColor = true;
+            this.button_Save.Click += new System.EventHandler(this.button_Save_Click);
+            // 
+            // backgroundWorker_posePredict
+            // 
+            this.backgroundWorker_posePredict.WorkerReportsProgress = true;
+            this.backgroundWorker_posePredict.WorkerSupportsCancellation = true;
+            this.backgroundWorker_posePredict.DoWork += new System.ComponentModel.DoWorkEventHandler(this.backgroundWorker_posePredict_DoWork);
+            this.backgroundWorker_posePredict.ProgressChanged += new System.ComponentModel.ProgressChangedEventHandler(this.backgroundWorker_posePredict_ProgressChanged);
+            this.backgroundWorker_posePredict.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.backgroundWorker_posePredict_RunWorkerCompleted);
             // 
             // Form1
             // 
@@ -325,6 +347,8 @@
         private System.Windows.Forms.Button button_frameBackward05;
         private System.Windows.Forms.Button button_frameBackward10;
         private System.Windows.Forms.Label label_FrameCount;
+        private System.Windows.Forms.Button button_Save;
+        private System.ComponentModel.BackgroundWorker backgroundWorker_posePredict;
     }
 }
 
