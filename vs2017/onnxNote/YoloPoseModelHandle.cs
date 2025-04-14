@@ -386,7 +386,7 @@ namespace YoloPoseOnnxHandle
         }
 
 
-        public void drawBone(Graphics g, float confidenceLevel = 0.6f, float diameter = 6)
+        public void drawBone(Graphics g, float confidenceLevel = 0.6f, float diameter = 8)
         {
             Pen p = new Pen(Color.Blue, 2);
 
@@ -454,6 +454,26 @@ namespace YoloPoseOnnxHandle
                 g.FillEllipse(Brushes.LightBlue, EyeLeft.GetRectangle(diameter));
             if (Nose.Confidence >= confidenceLevel)
                 g.FillEllipse(Brushes.GreenYellow, Nose.GetRectangle(diameter));
+
+            KeyPoint hip = Hip();
+            if (hip.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.Violet, hip.GetRectangle(diameter - 2));
+
+            KeyPoint shoulder = Shoulder();
+            if (shoulder.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.Violet, shoulder.GetRectangle(diameter - 2));
+
+            KeyPoint ear = Ear();
+            if (ear.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.Violet, ear.GetRectangle(diameter - 2));
+
+            KeyPoint eye = Eye();
+            if (eye.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.Violet, eye.GetRectangle(diameter - 2));
+
+            KeyPoint head = Head();
+            if (head.Confidence >= confidenceLevel)
+                g.FillEllipse(Brushes.Violet, head.GetRectangle(diameter-2));
 
         }
 
