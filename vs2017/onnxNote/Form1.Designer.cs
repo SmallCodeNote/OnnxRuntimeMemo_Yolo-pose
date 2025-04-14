@@ -34,6 +34,7 @@
             this.pictureBox = new System.Windows.Forms.PictureBox();
             this.panel_YOLOPOSE_BOTTOM = new System.Windows.Forms.Panel();
             this.panel1 = new System.Windows.Forms.Panel();
+            this.button_Save = new System.Windows.Forms.Button();
             this.button_frameForward10 = new System.Windows.Forms.Button();
             this.button_frameForward05 = new System.Windows.Forms.Button();
             this.button_frameForward01 = new System.Windows.Forms.Button();
@@ -48,7 +49,6 @@
             this.button_OpenModelFile = new System.Windows.Forms.Button();
             this.label_modelPath = new System.Windows.Forms.Label();
             this.tabPage2 = new System.Windows.Forms.TabPage();
-            this.button_Save = new System.Windows.Forms.Button();
             this.backgroundWorker_posePredict = new System.ComponentModel.BackgroundWorker();
             this.tabControl1.SuspendLayout();
             this.tabPage_YOLOPOSE.SuspendLayout();
@@ -133,6 +133,17 @@
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(776, 30);
             this.panel1.TabIndex = 1;
+            // 
+            // button_Save
+            // 
+            this.button_Save.Dock = System.Windows.Forms.DockStyle.Right;
+            this.button_Save.Location = new System.Drawing.Point(650, 0);
+            this.button_Save.Name = "button_Save";
+            this.button_Save.Size = new System.Drawing.Size(63, 30);
+            this.button_Save.TabIndex = 8;
+            this.button_Save.Text = "Save";
+            this.button_Save.UseVisualStyleBackColor = true;
+            this.button_Save.Click += new System.EventHandler(this.button_Save_Click);
             // 
             // button_frameForward10
             // 
@@ -279,17 +290,6 @@
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "Setting";
             this.tabPage2.UseVisualStyleBackColor = true;
-            // 
-            // button_Save
-            // 
-            this.button_Save.Dock = System.Windows.Forms.DockStyle.Right;
-            this.button_Save.Location = new System.Drawing.Point(650, 0);
-            this.button_Save.Name = "button_Save";
-            this.button_Save.Size = new System.Drawing.Size(63, 30);
-            this.button_Save.TabIndex = 8;
-            this.button_Save.Text = "Save";
-            this.button_Save.UseVisualStyleBackColor = true;
-            this.button_Save.Click += new System.EventHandler(this.button_Save_Click);
             // 
             // backgroundWorker_posePredict
             // 

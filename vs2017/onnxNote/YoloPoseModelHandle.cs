@@ -64,8 +64,8 @@ namespace YoloPoseOnnxHandle
         Tensor<float> ConvertBitmapToTensor(Bitmap bitmap, int width = 640, int height = 640)
         {
             var tensor = new DenseTensor<float>(new[] { 1, 3, height, width });
-            int widthMax = Math.Min(bitmap.Width,width);
-            int heightMax = Math.Min(bitmap.Height,height);
+            int widthMax = Math.Min(bitmap.Width, width);
+            int heightMax = Math.Min(bitmap.Height, height);
 
             for (int y = 0; y < heightMax; y++)
             {
@@ -300,7 +300,7 @@ namespace YoloPoseOnnxHandle
             }
             else if (p1.Confidence >= Confidence)
             {
-                return new KeyPoint(p1.X, p1.Y, p1.Confidence );
+                return new KeyPoint(p1.X, p1.Y, p1.Confidence);
             }
             else if (p2.Confidence >= Confidence)
             {
@@ -311,6 +311,30 @@ namespace YoloPoseOnnxHandle
             return new KeyPoint();
         }
 
+        private KeyPoint KeyPointAve(float Confidence, params KeyPoint[] ps)
+        {
+            float pCount = 0;
+            float Xsum = 0;
+            float Ysum = 0;
+            float ConfidenceMin = 1f;
+
+            foreach (var p in ps)
+            {
+                if (p.Confidence >= Confidence)
+                {
+                    ConfidenceMin = p.Confidence < ConfidenceMin ? p.Confidence : ConfidenceMin;
+                    Xsum += p.X;
+                    Ysum += p.Y;
+                    pCount++;
+                }
+            }
+
+            if (pCount <= 0) { return new KeyPoint(); }
+            return new KeyPoint(Xsum / pCount, Ysum / pCount, ConfidenceMin);
+        }
+
+        public KeyPoint Head(float confidenceLevel) { return KeyPointAve(confidenceLevel, Nose, EyeLeft, EyeRight, EarLeft, EarRight); }
+
         public KeyPoint Eye(float confidenceLevel) { return KeyPointSum(EyeLeft, EyeRight, confidenceLevel); }
         public KeyPoint Ear(float confidenceLevel) { return KeyPointSum(EarLeft, EarRight, confidenceLevel); }
         public KeyPoint Shoulder(float confidenceLevel) { return KeyPointSum(ShoulderLeft, ShoulderRight, confidenceLevel); }
@@ -320,6 +344,7 @@ namespace YoloPoseOnnxHandle
         public KeyPoint Knee(float confidenceLevel) { return KeyPointSum(KneeLeft, KneeRight, confidenceLevel); }
         public KeyPoint Ankle(float confidenceLevel) { return KeyPointSum(AnkleLeft, AnkleRight, confidenceLevel); }
 
+        public KeyPoint Head() { return KeyPointAve(confidenceLevel_Head, Nose, EyeLeft, EyeRight, EarLeft, EarRight); }
         public KeyPoint Eye() { return KeyPointSum(EyeLeft, EyeRight, confidenceLevel_Eye); }
         public KeyPoint Ear() { return KeyPointSum(EarLeft, EarRight, confidenceLevel_Ear); }
         public KeyPoint Shoulder() { return KeyPointSum(ShoulderLeft, ShoulderRight, confidenceLevel_Shoulder); }
@@ -329,6 +354,7 @@ namespace YoloPoseOnnxHandle
         public KeyPoint Knee() { return KeyPointSum(KneeLeft, KneeRight, confidenceLevel_Knee); }
         public KeyPoint Ankle() { return KeyPointSum(AnkleLeft, AnkleRight, confidenceLevel_Ankle); }
 
+        public float confidenceLevel_Head = 0.6f;
         public float confidenceLevel_Eye = 0.6f;
         public float confidenceLevel_Ear = 0.6f;
         public float confidenceLevel_Shoulder = 0.6f;

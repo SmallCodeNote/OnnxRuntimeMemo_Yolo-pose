@@ -317,6 +317,7 @@ namespace onnxNote
         {
             BackgroundWorker worker = (BackgroundWorker)sender;
 
+            List<string> HeadKeyPoint = new List<string>();
             List<string> NoseKeyPoint = new List<string>();
             List<string> EyeKeyPoint = new List<string>();
             List<string> EarKeyPoint = new List<string>();
@@ -327,6 +328,7 @@ namespace onnxNote
             List<string> KneeKeyPoint = new List<string>();
             List<string> AnkleKeyPoint = new List<string>();
 
+            string pathHead = Path.Combine(masterPath, "Head.csv");
             string pathNose = Path.Combine(masterPath, "Nose.csv");
             string pathEye = Path.Combine(masterPath, "Eye.csv");
             string pathEar = Path.Combine(masterPath, "Ear.csv");
@@ -337,6 +339,7 @@ namespace onnxNote
             string pathKnee = Path.Combine(masterPath, "Knee.csv");
             string pathAnkle = Path.Combine(masterPath, "Ankle.csv");
 
+            string lineHead = "";
             string lineNose = "";
             string lineEye = "";
             string lineEar = "";
@@ -373,6 +376,7 @@ namespace onnxNote
                     string posFrame = capture.PosFrames.ToString();
                     progressReport = posFrame + " / " + capture.FrameCount.ToString();
 
+                    lineHead = posFrame;
                     lineNose = posFrame;
                     lineEye = posFrame;
                     lineEar = posFrame;
@@ -385,6 +389,7 @@ namespace onnxNote
 
                     foreach (var pose in yoloPoseModelHandle.PoseInfos)
                     {
+                        lineHead += "," + pose.KeyPoints.Head().ToString();
                         lineNose += "," + pose.KeyPoints.Nose.ToString();
                         lineEye += "," + pose.KeyPoints.Eye().ToString();
                         lineEar += "," + pose.KeyPoints.Ear().ToString();
@@ -396,6 +401,7 @@ namespace onnxNote
                         lineAnkle += "," + pose.KeyPoints.Ankle().ToString();
                     }
 
+                    HeadKeyPoint.Add(lineHead);
                     NoseKeyPoint.Add(lineNose);
                     EyeKeyPoint.Add(lineEye);
                     EarKeyPoint.Add(lineEar);
@@ -416,6 +422,7 @@ namespace onnxNote
 
                 video.Release();
 
+                File.AppendAllLines(pathHead, HeadKeyPoint);
                 File.AppendAllLines(pathNose, NoseKeyPoint);
                 File.AppendAllLines(pathEye, EyeKeyPoint);
                 File.AppendAllLines(pathEar, EarKeyPoint);
