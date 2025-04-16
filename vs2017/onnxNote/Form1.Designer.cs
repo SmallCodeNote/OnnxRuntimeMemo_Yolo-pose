@@ -34,6 +34,8 @@
             this.pictureBox = new System.Windows.Forms.PictureBox();
             this.panel_YOLOPOSE_BOTTOM = new System.Windows.Forms.Panel();
             this.panel1 = new System.Windows.Forms.Panel();
+            this.trackBar_Conf = new System.Windows.Forms.TrackBar();
+            this.label_ConfThreshold = new System.Windows.Forms.Label();
             this.button_Save = new System.Windows.Forms.Button();
             this.button_frameForward10 = new System.Windows.Forms.Button();
             this.button_frameForward05 = new System.Windows.Forms.Button();
@@ -49,6 +51,8 @@
             this.button_OpenModelFile = new System.Windows.Forms.Button();
             this.label_modelPath = new System.Windows.Forms.Label();
             this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.comboBox_DeviceID = new System.Windows.Forms.ComboBox();
+            this.label1 = new System.Windows.Forms.Label();
             this.backgroundWorker_posePredict = new System.ComponentModel.BackgroundWorker();
             this.tabControl1.SuspendLayout();
             this.tabPage_YOLOPOSE.SuspendLayout();
@@ -56,8 +60,10 @@
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox)).BeginInit();
             this.panel_YOLOPOSE_BOTTOM.SuspendLayout();
             this.panel1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.trackBar_Conf)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar_frameIndex)).BeginInit();
             this.panel_YOLOPOSE_TOP.SuspendLayout();
+            this.tabPage2.SuspendLayout();
             this.SuspendLayout();
             // 
             // tabControl1
@@ -119,6 +125,8 @@
             // panel1
             // 
             this.panel1.AutoScroll = true;
+            this.panel1.Controls.Add(this.trackBar_Conf);
+            this.panel1.Controls.Add(this.label_ConfThreshold);
             this.panel1.Controls.Add(this.button_Save);
             this.panel1.Controls.Add(this.button_frameForward10);
             this.panel1.Controls.Add(this.button_frameForward05);
@@ -133,6 +141,29 @@
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(776, 30);
             this.panel1.TabIndex = 1;
+            // 
+            // trackBar_Conf
+            // 
+            this.trackBar_Conf.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.trackBar_Conf.Location = new System.Drawing.Point(427, 0);
+            this.trackBar_Conf.Maximum = 100;
+            this.trackBar_Conf.Name = "trackBar_Conf";
+            this.trackBar_Conf.Size = new System.Drawing.Size(193, 30);
+            this.trackBar_Conf.TabIndex = 9;
+            this.trackBar_Conf.TickFrequency = 10;
+            this.trackBar_Conf.Value = 80;
+            this.trackBar_Conf.Scroll += new System.EventHandler(this.trackBar_Conf_Scroll);
+            this.trackBar_Conf.ValueChanged += new System.EventHandler(this.trackBar_Conf_ValueChanged);
+            // 
+            // label_ConfThreshold
+            // 
+            this.label_ConfThreshold.Dock = System.Windows.Forms.DockStyle.Right;
+            this.label_ConfThreshold.Location = new System.Drawing.Point(620, 0);
+            this.label_ConfThreshold.Name = "label_ConfThreshold";
+            this.label_ConfThreshold.Size = new System.Drawing.Size(30, 30);
+            this.label_ConfThreshold.TabIndex = 10;
+            this.label_ConfThreshold.Text = "...";
+            this.label_ConfThreshold.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // button_Save
             // 
@@ -283,6 +314,9 @@
             // 
             // tabPage2
             // 
+            this.tabPage2.AutoScroll = true;
+            this.tabPage2.Controls.Add(this.comboBox_DeviceID);
+            this.tabPage2.Controls.Add(this.label1);
             this.tabPage2.Location = new System.Drawing.Point(4, 22);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
@@ -290,6 +324,29 @@
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "Setting";
             this.tabPage2.UseVisualStyleBackColor = true;
+            // 
+            // comboBox_DeviceID
+            // 
+            this.comboBox_DeviceID.FormattingEnabled = true;
+            this.comboBox_DeviceID.Items.AddRange(new object[] {
+            "CPU",
+            "GPU0",
+            "GPU1"});
+            this.comboBox_DeviceID.Location = new System.Drawing.Point(8, 43);
+            this.comboBox_DeviceID.Name = "comboBox_DeviceID";
+            this.comboBox_DeviceID.Size = new System.Drawing.Size(67, 20);
+            this.comboBox_DeviceID.TabIndex = 1;
+            this.comboBox_DeviceID.Text = "CPU";
+            this.comboBox_DeviceID.SelectedIndexChanged += new System.EventHandler(this.comboBox_DeviceID_SelectedIndexChanged);
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(8, 28);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(51, 12);
+            this.label1.TabIndex = 0;
+            this.label1.Text = "DeviceID";
             // 
             // backgroundWorker_posePredict
             // 
@@ -318,9 +375,13 @@
             this.panel_YOLOPOSE_BOTTOM.ResumeLayout(false);
             this.panel_YOLOPOSE_BOTTOM.PerformLayout();
             this.panel1.ResumeLayout(false);
+            this.panel1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.trackBar_Conf)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar_frameIndex)).EndInit();
             this.panel_YOLOPOSE_TOP.ResumeLayout(false);
             this.panel_YOLOPOSE_TOP.PerformLayout();
+            this.tabPage2.ResumeLayout(false);
+            this.tabPage2.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -349,6 +410,10 @@
         private System.Windows.Forms.Label label_FrameCount;
         private System.Windows.Forms.Button button_Save;
         private System.ComponentModel.BackgroundWorker backgroundWorker_posePredict;
+        private System.Windows.Forms.TrackBar trackBar_Conf;
+        private System.Windows.Forms.Label label_ConfThreshold;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.ComboBox comboBox_DeviceID;
     }
 }
 

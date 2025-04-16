@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -84,39 +86,6 @@ namespace onnxNote
             setCenterPictureBox();
         }
 
-        private void setCenterPictureBox()
-        {
-            pictureBox.Left = (panel_Main.ClientSize.Width - pictureBox.Width) / 2;
-            pictureBox.Top = (panel_Main.ClientSize.Height - pictureBox.Height) / 2;
-        }
-
-        private void pictureBoxUpdate(PictureBox p, Bitmap bitmap)
-        {
-            if (p.InvokeRequired)
-            {
-                p.Invoke(new Action(() => pictureBoxUpdate(p, bitmap)));
-                return;
-            }
-            else
-            {
-                if (bitmap == null) return;
-                if (p.Image != null) p.Image.Dispose();
-                p.Image = new Bitmap( bitmap);
-            }
-        }
-
-
-        private void drawPose(Bitmap bitmap)
-        {
-            yoloPoseModelHandle.Predicte(bitmap);
-            using (Graphics g = Graphics.FromImage(bitmap))
-            {
-                yoloPoseModelHandle.drawBBoxs(g);
-                yoloPoseModelHandle.drawBones(g);
-            }
-
-        }
-
         private void button_OpenMovieFile_Click(object sender, EventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog();
@@ -150,7 +119,7 @@ namespace onnxNote
                     if (!capture.Read(frame) || frame.Empty()) return;
 
                     Bitmap bitmap = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(frame);
-                    drawPose(bitmap);
+                    drawPose(bitmap, yoloPoseModelHandle.PoseInfos);
                     pictureBoxUpdate(pictureBox, bitmap);
                     label_FrameCount.Text = trackBar_frameIndex.Value.ToString() + " / " + capture.FrameCount.ToString();
                 }
@@ -187,7 +156,8 @@ namespace onnxNote
                     if (!capture.Read(frame) || frame.Empty()) return;
 
                     Bitmap bitmap = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(frame);
-                    drawPose(bitmap);
+                    List<PoseInfo> poseInfos = yoloPoseModelHandle.Predicte(bitmap);
+                    drawPose(bitmap, poseInfos);
                     pictureBoxUpdate(pictureBox, bitmap);
 
 
@@ -197,25 +167,6 @@ namespace onnxNote
             }
         }
 
-        Tensor<float> ConvertBitmapToTensor(Bitmap bitmap, int width = 640, int height = 640)
-        {
-            var tensor = new DenseTensor<float>(new[] { 1, 3, height, width });
-
-            int widthMax = bitmap.Width;
-            int heightMax = bitmap.Height;
-
-            for (int y = 0; y < heightMax; y++)
-            {
-                for (int x = 0; x < widthMax; x++)
-                {
-                    Color color = bitmap.GetPixel(x, y);
-                    tensor[0, 0, y, x] = color.R / 255.0f;
-                    tensor[0, 1, y, x] = color.G / 255.0f;
-                    tensor[0, 2, y, x] = color.B / 255.0f;
-                }
-            }
-            return tensor;
-        }
 
         void ParseYOLOOutput(float[] output)
         {
@@ -250,7 +201,8 @@ namespace onnxNote
         {
             if (File.Exists(textBox_modelFilePath.Text))
             {
-                yoloPoseModelHandle = new YoloPoseModelHandle(textBox_modelFilePath.Text);
+                int deviceID = comboBox_DeviceID.SelectedIndex - 1; 
+                yoloPoseModelHandle = new YoloPoseModelHandle(textBox_modelFilePath.Text, deviceID);
             }
         }
 
@@ -286,7 +238,7 @@ namespace onnxNote
                 sfd.Filter = "";
                 if (sfd.ShowDialog() != DialogResult.OK) return;
 
-                masterPath = Path.Combine(Path.GetDirectoryName(sfd.FileName), Path.GetFileNameWithoutExtension(ofd.FileName));
+                masterPath = Path.Combine(Path.GetDirectoryName(sfd.FileName), Path.GetFileNameWithoutExtension(sfd.FileName));
 
                 string ext = Path.GetExtension(ofd.FileName);
 
@@ -311,11 +263,159 @@ namespace onnxNote
             }
         }
 
-        ConcurrentQueue<Action> taskQueue;
+
+        ConcurrentQueue<frameDataSet> frameTensorQueue;
+        string progressReport = "";
 
         private void backgroundWorker_posePredict_DoWork(object sender, DoWorkEventArgs e)
         {
             BackgroundWorker worker = (BackgroundWorker)sender;
+            frameTensorQueue = new ConcurrentQueue<frameDataSet>();
+            if (!Directory.Exists(masterPath)) { Directory.CreateDirectory(masterPath); };
+
+            Task task_frameTensor = Task.Run(() => dequeue_frameTensor());
+            Task task_frameReport = Task.Run(() => dequeue_frameReport());
+            Task task_frameVideoMat = Task.Run(() => dequeue_frameVideoMat());
+            Task task_frameShow = Task.Run(() => dequeue_frameShow());
+
+            using (Mat frame = new Mat())
+            {
+                while (capture.Read(frame) && !frame.Empty())
+                {
+                    Bitmap bitmap = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(frame);
+                    int frameIndex = capture.PosFrames;
+
+                    Bitmap srcImage = new Bitmap(bitmap);
+                    frameTensorQueue.Enqueue(new frameDataSet(ConvertBitmapToTensor(bitmap), srcImage, frameIndex));
+
+                    string posFrame = frameIndex.ToString();
+                    progressReport = posFrame + " / " + capture.FrameCount.ToString();
+
+                    if (worker.CancellationPending)
+                    {
+                        e.Cancel = true;
+
+                        break;
+                    }
+                    worker.ReportProgress(0);
+
+                    bitmap.Dispose();
+
+                }
+                frameTensorQueue.Enqueue(new frameDataSet(-1));
+            }
+
+            task_frameTensor.Wait();
+            task_frameReport.Wait();
+            task_frameVideoMat.Wait();
+            task_frameShow.Wait();
+        }
+
+        private void backgroundWorker_posePredict_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            label_FrameCount.Text = progressReport;
+            label_FrameCount.Refresh();
+        }
+
+        private void backgroundWorker_posePredict_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            button_Save.Text = "Save";
+        }
+
+
+        public unsafe Tensor<float> ConvertBitmapToTensor(Bitmap bitmap, int width = 640, int height = 640)
+        {
+            var tensor = new DenseTensor<float>(new[] { 1, 3, height, width });
+            int widthMax = Math.Min(bitmap.Width, width);
+            int heightMax = Math.Min(bitmap.Height, height);
+
+            BitmapData bitmapData = bitmap.LockBits(
+                new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                ImageLockMode.ReadOnly,
+                PixelFormat.Format24bppRgb
+            );
+
+            try
+            {
+                byte* ptr = (byte*)bitmapData.Scan0;
+
+                for (int y = 0; y < heightMax; y++)
+                {
+                    byte* row = ptr + y * bitmapData.Stride;
+
+                    for (int x = 0; x < widthMax; x++)
+                    {
+                        int pixelIndex = x * 3; // 24bppの場合、1ピクセルは3バイト (RGB)
+                        tensor[0, 0, y, x] = row[pixelIndex + 2] / 255.0f; // R
+                        tensor[0, 1, y, x] = row[pixelIndex + 1] / 255.0f; // G
+                        tensor[0, 2, y, x] = row[pixelIndex] / 255.0f;     // B
+                    }
+                }
+            }
+            finally
+            {
+                bitmap.UnlockBits(bitmapData);
+            }
+
+            return tensor;
+        }
+
+        ConcurrentQueue<frameDataSet> frameReportQueue;
+        private void dequeue_frameTensor()
+        {
+            Console.WriteLine("Start:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
+            frameReportQueue = new ConcurrentQueue<frameDataSet>();
+            frameVideoMatQueue = new ConcurrentQueue<frameDataSet>();
+            frameShowQueue = new ConcurrentQueue<frameDataSet>();
+
+            while (true)
+            {
+                if (frameTensorQueue.TryDequeue(out frameDataSet frameInfo))
+                {
+                    if (frameInfo.frameIndex >= 0)
+                    {
+                        List<PoseInfo> poseInfos = yoloPoseModelHandle.Predicte(frameInfo.tensor);
+                        frameReportQueue.Enqueue(new frameDataSet(poseInfos, frameInfo.frameIndex));
+
+                        if (frameInfo.bitmap != null)
+                        {
+                            drawPose(frameInfo.bitmap, poseInfos);
+                            using (Mat mat = BitmapConverter.ToMat(frameInfo.bitmap))
+                            {
+                                Mat mat3C = mat.CvtColor(ColorConversionCodes.BGRA2BGR);
+                                frameVideoMatQueue.Enqueue(new frameDataSet(mat3C, frameInfo.frameIndex));
+                                frameShowQueue.Enqueue(new frameDataSet(frameInfo.bitmap, frameInfo.frameIndex));
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine($"ERROR: { System.Reflection.MethodBase.GetCurrentMethod().Name }  Null Bitmap");
+                        }
+
+                    }
+                    else
+                    {
+                        frameReportQueue.Enqueue(new frameDataSet(frameInfo.frameIndex));
+                        frameVideoMatQueue.Enqueue(new frameDataSet(frameInfo.frameIndex));
+                        frameShowQueue.Enqueue(new frameDataSet(frameInfo.frameIndex));
+
+                        break;
+                    }
+                }
+                else
+                {
+                    Thread.Sleep(1);
+                }
+            }
+            Console.WriteLine("Complete:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
+        }
+
+        ConcurrentQueue<frameDataSet> frameVideoMatQueue;
+        ConcurrentQueue<frameDataSet> frameShowQueue;
+
+        private void dequeue_frameReport()
+        {
+            Console.WriteLine("Start:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
 
             List<string> HeadKeyPoint = new List<string>();
             List<string> NoseKeyPoint = new List<string>();
@@ -350,102 +450,285 @@ namespace onnxNote
             string lineKnee = "";
             string lineAnkle = "";
 
-            string videoPath = Path.Combine(masterPath, Path.GetFileNameWithoutExtension(masterPath) + "_pose.mov");
-
-            if (!Directory.Exists(masterPath)) { Directory.CreateDirectory(masterPath); };
-
-
-            using (VideoWriter video = new VideoWriter(videoPath, FourCC.MP4V, 30, new OpenCvSharp.Size(640, 360)))
-            using (Mat frame = new Mat())
+            while (true)
             {
-                if (video.IsOpened())
+                if (frameReportQueue.TryDequeue(out frameDataSet frameInfo))
+                {
+                    if (frameInfo.frameIndex >= 0)
+                    {
+                        string posFrame = frameInfo.frameIndex.ToString();
+
+                        lineHead = posFrame;
+                        lineNose = posFrame;
+                        lineEye = posFrame;
+                        lineEar = posFrame;
+                        lineShoulder = posFrame;
+                        lineElbow = posFrame;
+                        lineWrist = posFrame;
+                        lineHip = posFrame;
+                        lineKnee = posFrame;
+                        lineAnkle = posFrame;
+
+                        foreach (var pose in frameInfo.PoseInfos)
+                        {
+                            lineHead += "," + pose.KeyPoints.Head().ToString();
+                            lineNose += "," + pose.KeyPoints.Nose.ToString();
+                            lineEye += "," + pose.KeyPoints.Eye().ToString();
+                            lineEar += "," + pose.KeyPoints.Ear().ToString();
+                            lineShoulder += "," + pose.KeyPoints.Shoulder().ToString();
+                            lineElbow += "," + pose.KeyPoints.Elbow().ToString();
+                            lineWrist += "," + pose.KeyPoints.Wrist().ToString();
+                            lineHip += "," + pose.KeyPoints.Hip().ToString();
+                            lineKnee += "," + pose.KeyPoints.Knee().ToString();
+                            lineAnkle += "," + pose.KeyPoints.Ankle().ToString();
+                        }
+
+                        HeadKeyPoint.Add(lineHead);
+                        NoseKeyPoint.Add(lineNose);
+                        EyeKeyPoint.Add(lineEye);
+                        EarKeyPoint.Add(lineEar);
+                        ShoulderKeyPoint.Add(lineShoulder);
+                        ElbowKeyPoint.Add(lineElbow);
+                        WristKeyPoint.Add(lineWrist);
+                        HipKeyPoint.Add(lineHip);
+                        KneeKeyPoint.Add(lineKnee);
+                        AnkleKeyPoint.Add(lineAnkle);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    Thread.Sleep(1);
+                }
+            }
+
+            File.AppendAllLines(pathHead, HeadKeyPoint);
+            File.AppendAllLines(pathNose, NoseKeyPoint);
+            File.AppendAllLines(pathEye, EyeKeyPoint);
+            File.AppendAllLines(pathEar, EarKeyPoint);
+            File.AppendAllLines(pathShoulder, ShoulderKeyPoint);
+            File.AppendAllLines(pathElbow, ElbowKeyPoint);
+            File.AppendAllLines(pathWrist, WristKeyPoint);
+            File.AppendAllLines(pathHip, HipKeyPoint);
+            File.AppendAllLines(pathKnee, KneeKeyPoint);
+            File.AppendAllLines(pathAnkle, AnkleKeyPoint);
+
+            Console.WriteLine("Complete:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
+        }
+
+        private void dequeue_frameShow()
+        {
+            Console.WriteLine("Start:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
+
+            while (true)
+            {
+                if (frameShowQueue.TryDequeue(out frameDataSet frameInfo))
+                {
+                    if (frameInfo.frameIndex >= 0)
+                    {
+
+                        if (frameInfo.bitmap != null)
+                        {
+                            pictureBoxUpdate(pictureBox, frameInfo.bitmap);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"ERROR: { System.Reflection.MethodBase.GetCurrentMethod().Name }  Null Bitmap  frame:{frameInfo.frameIndex}");
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    Thread.Sleep(1);
+                }
+            }
+            Console.WriteLine("Complete:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
+        }
+
+        enum AVHWDeviceType
+        {
+            AV_HWDEVICE_TYPE_NONE,
+            AV_HWDEVICE_TYPE_VDPAU,
+            AV_HWDEVICE_TYPE_CUDA,
+            AV_HWDEVICE_TYPE_VAAPI,
+            AV_HWDEVICE_TYPE_DXVA2,
+            AV_HWDEVICE_TYPE_QSV,
+            AV_HWDEVICE_TYPE_VIDEOTOOLBOX,
+            AV_HWDEVICE_TYPE_D3D11VA,
+            AV_HWDEVICE_TYPE_DRM,
+            AV_HWDEVICE_TYPE_OPENCL,
+            AV_HWDEVICE_TYPE_MEDIACODEC,
+            AV_HWDEVICE_TYPE_VULKAN,
+            AV_HWDEVICE_TYPE_D3D12VA,
+            AV_HWDEVICE_TYPE_AMF,
+        };
+
+        private void dequeue_frameVideoMat()
+        {
+            Console.WriteLine("Start:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
+
+            string videoPath = Path.Combine(masterPath, Path.GetFileNameWithoutExtension(masterPath) + "_pose.mp4");
+
+            using (VideoWriter video = new VideoWriter(videoPath, FourCC.FromString("mp4v"), 30, new OpenCvSharp.Size(640, 360)))
+            {
+                if (!video.IsOpened())
                 {
                     Console.WriteLine("video not opened");
                 }
 
-                while (capture.Read(frame) && !frame.Empty())
+                video.Set(VideoWriterProperties.HwAcceleration, (double)AVHWDeviceType.AV_HWDEVICE_TYPE_QSV);
+
+                while (true)
                 {
-                    Bitmap bitmap = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(frame);
-                    drawPose(bitmap);
-                    using (Mat writeFrame = BitmapConverter.ToMat(bitmap))
+                    if (frameVideoMatQueue.TryDequeue(out frameDataSet frameInfo))
                     {
-                        video.Write(writeFrame);
+                        if (frameInfo.frameIndex >= 0)
+                        {
+                            video.Write(frameInfo.mat);
+                            frameInfo.mat.Dispose();
+                        }
+                        else
+                        {
+                            break;
+                        }
                     }
-                    pictureBoxUpdate(pictureBox, bitmap);
-
-                    string posFrame = capture.PosFrames.ToString();
-                    progressReport = posFrame + " / " + capture.FrameCount.ToString();
-
-                    lineHead = posFrame;
-                    lineNose = posFrame;
-                    lineEye = posFrame;
-                    lineEar = posFrame;
-                    lineShoulder = posFrame;
-                    lineElbow = posFrame;
-                    lineWrist = posFrame;
-                    lineHip = posFrame;
-                    lineKnee = posFrame;
-                    lineAnkle = posFrame;
-
-                    foreach (var pose in yoloPoseModelHandle.PoseInfos)
+                    else
                     {
-                        lineHead += "," + pose.KeyPoints.Head().ToString();
-                        lineNose += "," + pose.KeyPoints.Nose.ToString();
-                        lineEye += "," + pose.KeyPoints.Eye().ToString();
-                        lineEar += "," + pose.KeyPoints.Ear().ToString();
-                        lineShoulder += "," + pose.KeyPoints.Shoulder().ToString();
-                        lineElbow += "," + pose.KeyPoints.Elbow().ToString();
-                        lineWrist += "," + pose.KeyPoints.Wrist().ToString();
-                        lineHip += "," + pose.KeyPoints.Hip().ToString();
-                        lineKnee += "," + pose.KeyPoints.Knee().ToString();
-                        lineAnkle += "," + pose.KeyPoints.Ankle().ToString();
+                        Thread.Sleep(1);
                     }
-
-                    HeadKeyPoint.Add(lineHead);
-                    NoseKeyPoint.Add(lineNose);
-                    EyeKeyPoint.Add(lineEye);
-                    EarKeyPoint.Add(lineEar);
-                    ShoulderKeyPoint.Add(lineShoulder);
-                    ElbowKeyPoint.Add(lineElbow);
-                    WristKeyPoint.Add(lineWrist);
-                    HipKeyPoint.Add(lineHip);
-                    KneeKeyPoint.Add(lineKnee);
-                    AnkleKeyPoint.Add(lineAnkle);
-                    
-                    if (worker.CancellationPending)
-                    {
-                        e.Cancel = true;
-                        break;
-                    }
-                    worker.ReportProgress(0);
                 }
-
                 video.Release();
 
-                File.AppendAllLines(pathHead, HeadKeyPoint);
-                File.AppendAllLines(pathNose, NoseKeyPoint);
-                File.AppendAllLines(pathEye, EyeKeyPoint);
-                File.AppendAllLines(pathEar, EarKeyPoint);
-                File.AppendAllLines(pathShoulder, ShoulderKeyPoint);
-                File.AppendAllLines(pathElbow, ElbowKeyPoint);
-                File.AppendAllLines(pathWrist, WristKeyPoint);
-                File.AppendAllLines(pathHip, HipKeyPoint);
-                File.AppendAllLines(pathKnee, KneeKeyPoint);
-                File.AppendAllLines(pathAnkle, AnkleKeyPoint);
+            }
+            Console.WriteLine("Complete:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
+        }
 
+        private void setCenterPictureBox()
+        {
+            pictureBox.Left = (panel_Main.ClientSize.Width - pictureBox.Width) / 2;
+            pictureBox.Top = (panel_Main.ClientSize.Height - pictureBox.Height) / 2;
+        }
+
+        private void pictureBoxUpdate(PictureBox p, Bitmap bitmap)
+        {
+            if (p.InvokeRequired)
+            {
+                p.Invoke(new Action(() => pictureBoxUpdate(p, bitmap)));
+                return;
+            }
+            else
+            {
+                if (bitmap == null) return;
+                if (p.Image != null) p.Image.Dispose();
+                p.Image = new Bitmap(bitmap);
             }
         }
 
-        string progressReport = "";
-        private void backgroundWorker_posePredict_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        private void drawPose(Bitmap bitmap, List<PoseInfo> PoseInfos)
         {
-            label_FrameCount.Text = progressReport;
-            label_FrameCount.Refresh();
+            using (Graphics g = Graphics.FromImage(bitmap))
+            {
+                drawBBoxs(g, PoseInfos);
+                drawBones(g, PoseInfos);
+            }
         }
 
-        private void backgroundWorker_posePredict_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        public void drawBBoxs(Graphics g, List<PoseInfo> PoseInfos)
         {
-            button_Save.Text = "Save";
+            if (g != null)
+            {
+                foreach (var info in PoseInfos)
+                {
+                    g.DrawRectangle(Pens.Blue, info.Bbox.Rectangle);
+                }
+            }
+        }
+
+        public void drawBones(Graphics g, List<PoseInfo> PoseInfos)
+        {
+            if (g != null)
+            {
+                foreach (var info in PoseInfos)
+                {
+                    info.KeyPoints.drawBone(g);
+                }
+            }
+        }
+
+        private void trackBar_Conf_ValueChanged(object sender, EventArgs e)
+        {
+            if (yoloPoseModelHandle != null)
+            {
+                yoloPoseModelHandle.ConfidenceThreshold = (float)(trackBar_Conf.Value / 100f);
+                trackBar_frameIndex_ValueChanged(null, null);
+               
+            }
+        }
+
+        private void trackBar_Conf_Scroll(object sender, EventArgs e)
+        {
+            label_ConfThreshold.Text = ((float)(trackBar_Conf.Value / 100f)).ToString("0.00");
+        }
+
+        private void comboBox_DeviceID_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            textBox_modelFilePath_TextChanged(null,null);
         }
     }
+
+    public class frameDataSet
+    {
+        public List<PoseInfo> PoseInfos;
+        public Tensor<float> tensor;
+        public Bitmap bitmap;
+        public int frameIndex;
+        public Mat mat;
+
+        public frameDataSet(int frameIndex)
+        {
+            this.frameIndex = frameIndex;
+        }
+        public frameDataSet(Mat mat, int frameIndex)
+        {
+            this.mat = mat;
+            this.frameIndex = frameIndex;
+        }
+        public frameDataSet(List<PoseInfo> PoseInfos, Bitmap bitmap, int frameIndex)
+        {
+            this.PoseInfos = PoseInfos;
+            this.bitmap = bitmap;
+            this.frameIndex = frameIndex;
+        }
+        public frameDataSet(List<PoseInfo> PoseInfos, int frameIndex)
+        {
+            this.PoseInfos = PoseInfos;
+            this.frameIndex = frameIndex;
+        }
+        public frameDataSet(Bitmap bitmap, int frameIndex)
+        {
+            this.bitmap = bitmap;
+            this.frameIndex = frameIndex;
+        }
+        public frameDataSet(Tensor<float> tensor, int frameIndex)
+        {
+            this.tensor = tensor;
+            this.frameIndex = frameIndex;
+        }
+        public frameDataSet(Tensor<float> tensor, Bitmap bitmap, int frameIndex)
+        {
+            this.bitmap = bitmap;
+            this.tensor = tensor;
+            this.frameIndex = frameIndex;
+        }
+    }
+
+
+
 }

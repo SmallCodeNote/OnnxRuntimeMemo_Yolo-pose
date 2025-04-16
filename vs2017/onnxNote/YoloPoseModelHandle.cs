@@ -6,9 +6,11 @@ using System.Threading.Tasks;
 
 using System.IO;
 using System.Drawing;
+using System.Drawing.Imaging;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 
+using OpenCvSharp;
 
 namespace YoloPoseOnnxHandle
 {
@@ -21,12 +23,25 @@ namespace YoloPoseOnnxHandle
         private InferenceSession session;
         private int modelOutputStride = 8400;
 
-        public YoloPoseModelHandle(string modelfilePath)
+        public float ConfidenceThreshold = 0.6f;
+
+        public YoloPoseModelHandle(string modelfilePath, int deviceID = -1)
         {
             if (File.Exists(modelfilePath))
             {
                 if (session != null) session.Dispose();
-                session = new InferenceSession(modelfilePath);
+
+                SessionOptions sessionOptions = new SessionOptions();
+                try
+                {
+                    if (deviceID >= 0) sessionOptions.AppendExecutionProvider_DML(deviceID);
+                }
+                catch
+                {
+                    Console.WriteLine("ExecutionProviderAppendError");
+                }
+
+                session = new InferenceSession(modelfilePath, sessionOptions);
                 SessionInputName = session.InputMetadata.Keys.First();
             }
         }
@@ -37,57 +52,130 @@ namespace YoloPoseOnnxHandle
             GC.SuppressFinalize(this);
         }
 
-        public bool setModel(string modelfilePath)
+        public bool setModel(string modelfilePath, int deviceID = 0)
         {
             if (File.Exists(modelfilePath))
             {
                 if (session != null) session.Dispose();
-                session = new InferenceSession(modelfilePath);
+
+                SessionOptions sessionOptions = new SessionOptions();
+                try
+                {
+                    sessionOptions.AppendExecutionProvider_DML(deviceID);
+                }
+                catch
+                {
+                    Console.WriteLine("ExecutionProviderAppendError");
+                }
+
+                session = new InferenceSession(modelfilePath, sessionOptions);
                 SessionInputName = session.InputMetadata.Keys.First();
                 return true;
             }
             return false;
         }
 
-        public void Predicte(Bitmap bitmap)
+        public List<PoseInfo> Predicte(Bitmap bitmap, float confidenceThreshold = -1.0f)
         {
+            if (confidenceThreshold < 0) { confidenceThreshold = ConfidenceThreshold; }
             ImageTensor = ConvertBitmapToTensor(bitmap);
 
             var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor(SessionInputName, ImageTensor) };
             var results = session.Run(inputs);
             var output = results.First().AsEnumerable<float>().ToArray();
-
-            PoseInfoRead(output);
             results.Dispose();
+
+            return PoseInfoRead(output, confidenceThreshold);
         }
 
-        Tensor<float> ConvertBitmapToTensor(Bitmap bitmap, int width = 640, int height = 640)
+        public List<PoseInfo> Predicte(Tensor<float> ImageTensor, float confidenceThreshold = -1.0f)
+        {
+            if (confidenceThreshold < 0) { confidenceThreshold = ConfidenceThreshold; }
+            var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor(SessionInputName, ImageTensor) };
+            var results = session.Run(inputs);
+            var output = results.First().AsEnumerable<float>().ToArray();
+
+            results.Dispose();
+            return PoseInfoRead(output, confidenceThreshold);
+        }
+
+        public unsafe Tensor<float> ConvertBitmapToTensor(Bitmap bitmap, int width = 640, int height = 640)
         {
             var tensor = new DenseTensor<float>(new[] { 1, 3, height, width });
             int widthMax = Math.Min(bitmap.Width, width);
             int heightMax = Math.Min(bitmap.Height, height);
 
-            for (int y = 0; y < heightMax; y++)
+            BitmapData bitmapData = bitmap.LockBits(
+                new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                ImageLockMode.ReadOnly,
+                PixelFormat.Format24bppRgb
+            );
+
+            try
             {
-                for (int x = 0; x < widthMax; x++)
+                byte* ptr = (byte*)bitmapData.Scan0;
+
+                for (int y = 0; y < heightMax; y++)
                 {
-                    Color color = bitmap.GetPixel(x, y);
-                    tensor[0, 0, y, x] = color.R / 255.0f;
-                    tensor[0, 1, y, x] = color.G / 255.0f;
-                    tensor[0, 2, y, x] = color.B / 255.0f;
+                    byte* row = ptr + y * bitmapData.Stride;
+
+                    for (int x = 0; x < widthMax; x++)
+                    {
+                        int pixelIndex = x * 3; // 24bpp
+                        tensor[0, 0, y, x] = row[pixelIndex + 2] / 255.0f; // R
+                        tensor[0, 1, y, x] = row[pixelIndex + 1] / 255.0f; // G
+                        tensor[0, 2, y, x] = row[pixelIndex] / 255.0f;     // B
+                    }
                 }
             }
+            finally
+            {
+                bitmap.UnlockBits(bitmapData);
+            }
+
             return tensor;
         }
+
+
+        Tensor<float> ConvertMatToTensor(Mat mat, int width = 640, int height = 640)
+        {
+            Mat resizedMat = new Mat();
+            Cv2.Resize(mat, resizedMat, new OpenCvSharp.Size(width, height));
+
+            var tensor = new DenseTensor<float>(new[] { 1, 3, height, width });
+
+            if (resizedMat.Type() != MatType.CV_8UC3)
+            {
+                throw new ArgumentException("Input Mat must be of type CV_8UC3 (8-bit, 3 channels).");
+            }
+
+            for (int y = 0; y < height; y++)
+            {
+                var row = resizedMat.Row(y);
+
+                for (int x = 0; x < width; x++)
+                {
+                    Vec3b pixel = row.At<Vec3b>(0, x);
+                    tensor[0, 0, y, x] = pixel.Item2 / 255.0f; // R
+                    tensor[0, 1, y, x] = pixel.Item1 / 255.0f; // G
+                    tensor[0, 2, y, x] = pixel.Item0 / 255.0f; // B
+                }
+            }
+
+            return tensor;
+        }
+
+
 
         public override string ToString()
         {
             return SessionInputName;
         }
 
-        public void PoseInfoRead(float[] outputArray, float confidenceThreshold = 0.6f)
+        public List<PoseInfo> PoseInfoRead(float[] outputArray, float confidenceThreshold = -1.0f)
         {
-            PoseInfos = new List<PoseInfo>();
+            if (confidenceThreshold < 0) { confidenceThreshold = ConfidenceThreshold; }
+            List<PoseInfo> PoseInfos = new List<PoseInfo>();
             for (int i = 0; i < modelOutputStride; i++)
             {
                 PoseInfo pi = new PoseInfo(outputArray, i);
@@ -115,28 +203,8 @@ namespace YoloPoseOnnxHandle
                     }
                 }
             }
-        }
-
-        public void drawBBoxs(Graphics g)
-        {
-            if (g != null)
-            {
-                foreach (var info in PoseInfos)
-                {
-                    g.DrawRectangle(Pens.Blue, info.Bbox.Rectangle);
-                }
-            }
-        }
-
-        public void drawBones(Graphics g)
-        {
-            if (g != null)
-            {
-                foreach (var info in PoseInfos)
-                {
-                    info.KeyPoints.drawBone(g);
-                }
-            }
+            this.PoseInfos = PoseInfos;
+            return PoseInfos;
         }
     }
 
@@ -289,8 +357,6 @@ namespace YoloPoseOnnxHandle
         public KeyPoint KneeRight;
         public KeyPoint AnkleLeft;
         public KeyPoint AnkleRight;
-
-
 
         private KeyPoint KeyPointSum(KeyPoint p1, KeyPoint p2, float Confidence)
         {
@@ -473,7 +539,7 @@ namespace YoloPoseOnnxHandle
 
             KeyPoint head = Head();
             if (head.Confidence >= confidenceLevel)
-                g.FillEllipse(Brushes.Violet, head.GetRectangle(diameter-2));
+                g.FillEllipse(Brushes.Violet, head.GetRectangle(diameter - 2));
 
         }
 
@@ -496,7 +562,7 @@ namespace YoloPoseOnnxHandle
         public float Confidence;
         private int stride = 8400;
 
-        public Point Position { get { return new Point((int)X, (int)Y); } }
+        public System.Drawing.Point Position { get { return new System.Drawing.Point((int)X, (int)Y); } }
 
         public Rectangle GetRectangle(float diameter = 12)
         {
