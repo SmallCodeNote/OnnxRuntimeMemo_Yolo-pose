@@ -90,13 +90,38 @@ namespace YoloPoseOnnxHandle
 
         public List<PoseInfo> Predicte(Tensor<float> ImageTensor, float confidenceThreshold = -1.0f)
         {
-            if (confidenceThreshold < 0) { confidenceThreshold = ConfidenceThreshold; }
             var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor(SessionInputName, ImageTensor) };
             var results = session.Run(inputs);
             var output = results.First().AsEnumerable<float>().ToArray();
-
             results.Dispose();
+
+            if (confidenceThreshold < 0) { confidenceThreshold = ConfidenceThreshold; }
             return PoseInfoRead(output, confidenceThreshold);
+        }
+
+        public float[] PredicteOutput(Tensor<float> ImageTensor, float confidenceThreshold = -1.0f)
+        {
+            var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor(SessionInputName, ImageTensor) };
+            var results = session.Run(inputs);
+            var output = results.First().AsEnumerable<float>().ToArray();
+            results.Dispose();
+
+            return output;
+        }
+        public IDisposableReadOnlyCollection<DisposableNamedOnnxValue> PredicteResults(Tensor<float> ImageTensor)
+        {
+            var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor(SessionInputName, ImageTensor) };
+            return session.Run(inputs);
+        }
+
+        public IDisposableReadOnlyCollection<DisposableNamedOnnxValue> PredicteResults(List<NamedOnnxValue> inputs, float confidenceThreshold = -1.0f)
+        {
+            return session.Run(inputs);
+        }
+
+        public List<NamedOnnxValue> getInputs(Tensor<float> ImageTensor)
+        {
+            return new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor(SessionInputName, ImageTensor) };
         }
 
         public unsafe Tensor<float> ConvertBitmapToTensor(Bitmap bitmap, int width = 640, int height = 640)
@@ -172,7 +197,14 @@ namespace YoloPoseOnnxHandle
             return SessionInputName;
         }
 
-        public List<PoseInfo> PoseInfoRead(float[] outputArray, float confidenceThreshold = -1.0f)
+        public List<PoseInfo> PoseInfoRead(IDisposableReadOnlyCollection<DisposableNamedOnnxValue> results, float confidenceThreshold = -1.0f)
+        {
+            float[] outputArray = results.First().AsEnumerable<float>().ToArray();
+            return PoseInfoRead(outputArray);
+        }
+
+
+            public List<PoseInfo> PoseInfoRead(float[] outputArray, float confidenceThreshold = -1.0f)
         {
             if (confidenceThreshold < 0) { confidenceThreshold = ConfidenceThreshold; }
             List<PoseInfo> PoseInfos = new List<PoseInfo>();

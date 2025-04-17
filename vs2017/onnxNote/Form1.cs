@@ -273,6 +273,7 @@ namespace onnxNote
 
             Task task_frameBitmap = Task.Run(() => dequeue_frameBitmap());
             Task task_frameTensor = Task.Run(() => dequeue_frameTensor());
+            Task task_framePoseInfo = Task.Run(() => dequeue_framePoseInfo());
             Task task_frameReport = Task.Run(() => dequeue_frameReport());
             Task task_frameVideoMat = Task.Run(() => dequeue_frameVideoMat());
             Task task_frameShow = Task.Run(() => dequeue_frameShow());
@@ -310,6 +311,7 @@ namespace onnxNote
 
             task_frameBitmap.Wait();
             task_frameTensor.Wait();
+            task_framePoseInfo.Wait();
             task_frameReport.Wait();
             task_frameVideoMat.Wait();
             task_frameShow.Wait();
@@ -327,40 +329,6 @@ namespace onnxNote
         }
 
         ConcurrentQueue<frameDataSet> frameTensorQueue;
-        /*
-        private void dequeue_frameBitmap()
-        {
-            Console.WriteLine("Start:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
-            frameTensorQueue = new ConcurrentQueue<frameDataSet>();
-
-            while (true)
-            {
-                if (frameBitmapQueue.TryDequeue(out frameDataSet frameInfo))
-                {
-                    if (frameInfo.frameIndex >= 0)
-                    {
-                        using (Bitmap srcImage = new Bitmap(frameInfo.bitmap))
-                        {
-                            Tensor<float> tensor = ConvertBitmapToTensor(srcImage);
-                            frameTensorQueue.Enqueue(new frameDataSet(tensor, frameInfo.bitmap, frameInfo.frameIndex));
-                        }
-                        Console.WriteLine("   Bitmap: " + frameInfo.frameIndex.ToString());
-                    }
-                    else
-                    {
-                        frameTensorQueue.Enqueue(new frameDataSet(frameInfo.frameIndex));
-                        break;
-                    }
-                }
-                else
-                {
-                    Thread.Sleep(1);
-                }
-            }
-            Console.WriteLine("Complete:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
-        }
-        */
-
         private void dequeue_frameBitmap()
         {
             Console.WriteLine("Start:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
@@ -380,7 +348,8 @@ namespace onnxNote
                             using (Bitmap srcImage = new Bitmap(frameInfo.bitmap))
                             {
                                 Tensor<float> tensor = ConvertBitmapToTensor(srcImage);
-                                frameTensorQueue.Enqueue(new frameDataSet(tensor, frameInfo.bitmap, frameInfo.frameIndex));
+                                List<NamedOnnxValue> inputs = yoloPoseModelHandle.getInputs(tensor);
+                                frameTensorQueue.Enqueue(new frameDataSet(inputs, frameInfo.bitmap, frameInfo.frameIndex));
                             }
                         }
                         else
@@ -393,7 +362,7 @@ namespace onnxNote
 
             while (true)
             {
-                if (frameBitmapQueue != null &&  frameBitmapQueue.TryDequeue(out frameDataSet frameInfo))
+                if (frameBitmapQueue != null && frameBitmapQueue.TryDequeue(out frameDataSet frameInfo))
                 {
                     if (frameInfo.frameIndex >= 0)
                     {
@@ -454,9 +423,41 @@ namespace onnxNote
             return tensor;
         }
 
+        ConcurrentQueue<frameDataSet> framePoseInfoQueue;
+        private void dequeue_frameTensor()
+        {
+            Console.WriteLine("Start:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
+            framePoseInfoQueue = new ConcurrentQueue<frameDataSet>();
+
+            while (true)
+            {
+                if (frameTensorQueue != null && frameTensorQueue.TryDequeue(out frameDataSet frameInfo))
+                {
+                    if (frameInfo.frameIndex >= 0)
+                    {
+                        var results = yoloPoseModelHandle.PredicteResults(frameInfo.inputs);
+                        framePoseInfoQueue.Enqueue(new frameDataSet(results, frameInfo.bitmap, frameInfo.frameIndex));
+                    }
+                    else
+                    {
+                        framePoseInfoQueue.Enqueue(new frameDataSet(-1));
+                        break;
+                    }
+                }
+                else
+                {
+                   Thread.Sleep(1);
+                }
+            }
+            Console.WriteLine("Complete:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
+        }
+
 
         ConcurrentQueue<frameDataSet> frameReportQueue;
-        private void dequeue_frameTensor()
+        ConcurrentQueue<frameDataSet> frameVideoMatQueue;
+        ConcurrentQueue<frameDataSet> frameShowQueue;
+
+        private void dequeue_framePoseInfo()
         {
             Console.WriteLine("Start:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
             frameReportQueue = new ConcurrentQueue<frameDataSet>();
@@ -465,11 +466,14 @@ namespace onnxNote
 
             while (true)
             {
-                if (frameTensorQueue != null && frameTensorQueue.TryDequeue(out frameDataSet frameInfo))
+                if (framePoseInfoQueue != null && framePoseInfoQueue.TryDequeue(out frameDataSet frameInfo))
                 {
                     if (frameInfo.frameIndex >= 0)
                     {
-                        List<PoseInfo> poseInfos = yoloPoseModelHandle.Predicte(frameInfo.tensor);
+                        //List<PoseInfo> poseInfos =  frameInfo.PoseInfos;
+                        List<PoseInfo> poseInfos = yoloPoseModelHandle.PoseInfoRead(frameInfo.results);
+                        frameInfo.results.Dispose();
+
                         frameReportQueue.Enqueue(new frameDataSet(poseInfos, frameInfo.frameIndex));
 
                         if (frameInfo.bitmap != null)
@@ -505,8 +509,7 @@ namespace onnxNote
             Console.WriteLine("Complete:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
         }
 
-        ConcurrentQueue<frameDataSet> frameVideoMatQueue;
-        ConcurrentQueue<frameDataSet> frameShowQueue;
+
 
         private void dequeue_frameReport()
         {
@@ -785,6 +788,10 @@ namespace onnxNote
         public Bitmap bitmap;
         public int frameIndex;
         public Mat mat;
+        public float[] output;
+        public IDisposableReadOnlyCollection<DisposableNamedOnnxValue> results;
+        public List<NamedOnnxValue> inputs;
+
 
         public frameDataSet(int frameIndex)
         {
@@ -795,6 +802,20 @@ namespace onnxNote
             this.mat = mat;
             this.frameIndex = frameIndex;
         }
+        public frameDataSet(float[] output, Bitmap bitmap, int frameIndex)
+        {
+            this.output = output;
+            this.bitmap = bitmap;
+            this.frameIndex = frameIndex;
+        }
+
+        public frameDataSet(IDisposableReadOnlyCollection<DisposableNamedOnnxValue> results, Bitmap bitmap, int frameIndex)
+        {
+            this.results = results;
+            this.bitmap = bitmap;
+            this.frameIndex = frameIndex;
+        }
+
         public frameDataSet(List<PoseInfo> PoseInfos, Bitmap bitmap, int frameIndex)
         {
             this.PoseInfos = PoseInfos;
@@ -818,8 +839,14 @@ namespace onnxNote
         }
         public frameDataSet(Tensor<float> tensor, Bitmap bitmap, int frameIndex)
         {
-            this.bitmap = bitmap;
             this.tensor = tensor;
+            this.bitmap = bitmap;
+            this.frameIndex = frameIndex;
+        }
+        public frameDataSet(List<NamedOnnxValue> inputs, Bitmap bitmap, int frameIndex)
+        {
+            this.inputs = inputs;
+            this.bitmap = bitmap;
             this.frameIndex = frameIndex;
         }
     }
