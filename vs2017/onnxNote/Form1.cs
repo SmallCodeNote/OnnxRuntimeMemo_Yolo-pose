@@ -106,7 +106,6 @@ namespace onnxNote
             {
                 pictureBoxUpdate(pictureBox, new Bitmap(ofd.FileName));
             }
-
         }
 
         private void trackBar_frameIndex_Scroll(object sender, EventArgs e)
@@ -160,7 +159,6 @@ namespace onnxNote
                     drawPose(bitmap, poseInfos);
                     pictureBoxUpdate(pictureBox, bitmap);
 
-
                 }
 
                 label_FrameCount.Text = trackBar_frameIndex.Value.ToString() + " / " + capture.FrameCount.ToString();
@@ -201,7 +199,7 @@ namespace onnxNote
         {
             if (File.Exists(textBox_modelFilePath.Text))
             {
-                int deviceID = comboBox_DeviceID.SelectedIndex - 1; 
+                int deviceID = comboBox_DeviceID.SelectedIndex - 1;
                 yoloPoseModelHandle = new YoloPoseModelHandle(textBox_modelFilePath.Text, deviceID);
             }
         }
@@ -264,15 +262,16 @@ namespace onnxNote
         }
 
 
-        ConcurrentQueue<frameDataSet> frameTensorQueue;
+        ConcurrentQueue<frameDataSet> frameBitmapQueue;
         string progressReport = "";
 
         private void backgroundWorker_posePredict_DoWork(object sender, DoWorkEventArgs e)
         {
             BackgroundWorker worker = (BackgroundWorker)sender;
-            frameTensorQueue = new ConcurrentQueue<frameDataSet>();
+            frameBitmapQueue = new ConcurrentQueue<frameDataSet>();
             if (!Directory.Exists(masterPath)) { Directory.CreateDirectory(masterPath); };
 
+            Task task_frameBitmap = Task.Run(() => dequeue_frameBitmap());
             Task task_frameTensor = Task.Run(() => dequeue_frameTensor());
             Task task_frameReport = Task.Run(() => dequeue_frameReport());
             Task task_frameVideoMat = Task.Run(() => dequeue_frameVideoMat());
@@ -282,11 +281,15 @@ namespace onnxNote
             {
                 while (capture.Read(frame) && !frame.Empty())
                 {
-                    Bitmap bitmap = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(frame);
                     int frameIndex = capture.PosFrames;
 
-                    Bitmap srcImage = new Bitmap(bitmap);
-                    frameTensorQueue.Enqueue(new frameDataSet(ConvertBitmapToTensor(bitmap), srcImage, frameIndex));
+                    //Bitmap bitmap = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(frame);
+                    //Bitmap srcImage = new Bitmap(bitmap);
+                    //frameBitmapQueue.Enqueue(new frameDataSet(srcImage, frameIndex));
+
+                    frameBitmapQueue.Enqueue(new frameDataSet(BitmapConverter.ToBitmap(frame), frameIndex));
+
+                    //frameTensorQueue.Enqueue(new frameDataSet(ConvertBitmapToTensor(bitmap), srcImage, frameIndex));
 
                     string posFrame = frameIndex.ToString();
                     progressReport = posFrame + " / " + capture.FrameCount.ToString();
@@ -299,12 +302,13 @@ namespace onnxNote
                     }
                     worker.ReportProgress(0);
 
-                    bitmap.Dispose();
+                    //bitmap.Dispose();
 
                 }
-                frameTensorQueue.Enqueue(new frameDataSet(-1));
+                frameBitmapQueue.Enqueue(new frameDataSet(-1));
             }
 
+            task_frameBitmap.Wait();
             task_frameTensor.Wait();
             task_frameReport.Wait();
             task_frameVideoMat.Wait();
@@ -320,6 +324,96 @@ namespace onnxNote
         private void backgroundWorker_posePredict_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             button_Save.Text = "Save";
+        }
+
+        ConcurrentQueue<frameDataSet> frameTensorQueue;
+        /*
+        private void dequeue_frameBitmap()
+        {
+            Console.WriteLine("Start:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
+            frameTensorQueue = new ConcurrentQueue<frameDataSet>();
+
+            while (true)
+            {
+                if (frameBitmapQueue.TryDequeue(out frameDataSet frameInfo))
+                {
+                    if (frameInfo.frameIndex >= 0)
+                    {
+                        using (Bitmap srcImage = new Bitmap(frameInfo.bitmap))
+                        {
+                            Tensor<float> tensor = ConvertBitmapToTensor(srcImage);
+                            frameTensorQueue.Enqueue(new frameDataSet(tensor, frameInfo.bitmap, frameInfo.frameIndex));
+                        }
+                        Console.WriteLine("   Bitmap: " + frameInfo.frameIndex.ToString());
+                    }
+                    else
+                    {
+                        frameTensorQueue.Enqueue(new frameDataSet(frameInfo.frameIndex));
+                        break;
+                    }
+                }
+                else
+                {
+                    Thread.Sleep(1);
+                }
+            }
+            Console.WriteLine("Complete:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
+        }
+        */
+
+        private void dequeue_frameBitmap()
+        {
+            Console.WriteLine("Start:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
+            frameTensorQueue = new ConcurrentQueue<frameDataSet>();
+            var frameBitmapQueueTemp = new BlockingCollection<frameDataSet>();
+
+            Task[] workers = new Task[12];
+
+            for (int i = 0; i < workers.Length; i++)
+            {
+                workers[i] = Task.Run(() =>
+                {
+                    foreach (var frameInfo in frameBitmapQueueTemp.GetConsumingEnumerable())
+                    {
+                        if (frameInfo.frameIndex >= 0)
+                        {
+                            using (Bitmap srcImage = new Bitmap(frameInfo.bitmap))
+                            {
+                                Tensor<float> tensor = ConvertBitmapToTensor(srcImage);
+                                frameTensorQueue.Enqueue(new frameDataSet(tensor, frameInfo.bitmap, frameInfo.frameIndex));
+                            }
+                        }
+                        else
+                        {
+                            frameTensorQueue.Enqueue(new frameDataSet(-1));
+                        }
+                    }
+                });
+            }
+
+            while (true)
+            {
+                if (frameBitmapQueue != null &&  frameBitmapQueue.TryDequeue(out frameDataSet frameInfo))
+                {
+                    if (frameInfo.frameIndex >= 0)
+                    {
+                        frameBitmapQueueTemp.Add(frameInfo);
+                    }
+                    else
+                    {
+                        frameBitmapQueueTemp.Add(frameInfo);
+                        frameBitmapQueueTemp.CompleteAdding();
+                        break;
+                    }
+                }
+                else
+                {
+                    Thread.Sleep(1);
+                }
+            }
+
+            Task.WaitAll(workers);
+            Console.WriteLine("Complete:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
         }
 
 
@@ -345,7 +439,7 @@ namespace onnxNote
 
                     for (int x = 0; x < widthMax; x++)
                     {
-                        int pixelIndex = x * 3; // 24bppの場合、1ピクセルは3バイト (RGB)
+                        int pixelIndex = x * 3; // 24bpp
                         tensor[0, 0, y, x] = row[pixelIndex + 2] / 255.0f; // R
                         tensor[0, 1, y, x] = row[pixelIndex + 1] / 255.0f; // G
                         tensor[0, 2, y, x] = row[pixelIndex] / 255.0f;     // B
@@ -360,6 +454,7 @@ namespace onnxNote
             return tensor;
         }
 
+
         ConcurrentQueue<frameDataSet> frameReportQueue;
         private void dequeue_frameTensor()
         {
@@ -370,7 +465,7 @@ namespace onnxNote
 
             while (true)
             {
-                if (frameTensorQueue.TryDequeue(out frameDataSet frameInfo))
+                if (frameTensorQueue != null && frameTensorQueue.TryDequeue(out frameDataSet frameInfo))
                 {
                     if (frameInfo.frameIndex >= 0)
                     {
@@ -395,9 +490,9 @@ namespace onnxNote
                     }
                     else
                     {
-                        frameReportQueue.Enqueue(new frameDataSet(frameInfo.frameIndex));
-                        frameVideoMatQueue.Enqueue(new frameDataSet(frameInfo.frameIndex));
-                        frameShowQueue.Enqueue(new frameDataSet(frameInfo.frameIndex));
+                        frameReportQueue.Enqueue(new frameDataSet(-1));
+                        frameVideoMatQueue.Enqueue(new frameDataSet(-1));
+                        frameShowQueue.Enqueue(new frameDataSet(-1));
 
                         break;
                     }
@@ -452,7 +547,7 @@ namespace onnxNote
 
             while (true)
             {
-                if (frameReportQueue.TryDequeue(out frameDataSet frameInfo))
+                if (frameReportQueue != null && frameReportQueue.TryDequeue(out frameDataSet frameInfo))
                 {
                     if (frameInfo.frameIndex >= 0)
                     {
@@ -525,7 +620,7 @@ namespace onnxNote
 
             while (true)
             {
-                if (frameShowQueue.TryDequeue(out frameDataSet frameInfo))
+                if (frameShowQueue != null && frameShowQueue.TryDequeue(out frameDataSet frameInfo))
                 {
                     if (frameInfo.frameIndex >= 0)
                     {
@@ -668,7 +763,7 @@ namespace onnxNote
             {
                 yoloPoseModelHandle.ConfidenceThreshold = (float)(trackBar_Conf.Value / 100f);
                 trackBar_frameIndex_ValueChanged(null, null);
-               
+
             }
         }
 
@@ -679,7 +774,7 @@ namespace onnxNote
 
         private void comboBox_DeviceID_SelectedIndexChanged(object sender, EventArgs e)
         {
-            textBox_modelFilePath_TextChanged(null,null);
+            textBox_modelFilePath_TextChanged(null, null);
         }
     }
 
@@ -728,7 +823,4 @@ namespace onnxNote
             this.frameIndex = frameIndex;
         }
     }
-
-
-
 }
