@@ -34,7 +34,12 @@ namespace YoloPoseOnnxHandle
                 SessionOptions sessionOptions = new SessionOptions();
                 try
                 {
-                    if (deviceID >= 0) sessionOptions.AppendExecutionProvider_DML(deviceID);
+                    if (deviceID >= 0) { sessionOptions.AppendExecutionProvider_DML(deviceID); }
+                    else { sessionOptions.AppendExecutionProvider_CPU(); }
+
+                    sessionOptions.ExecutionMode = ExecutionMode.ORT_PARALLEL; // 並列実行モードの使用
+                    sessionOptions.GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL; // グラフ最適化を有効化
+
                 }
                 catch
                 {
@@ -114,14 +119,14 @@ namespace YoloPoseOnnxHandle
             return session.Run(inputs);
         }
 
-        public IDisposableReadOnlyCollection<DisposableNamedOnnxValue> PredicteResults(List<NamedOnnxValue> inputs, float confidenceThreshold = -1.0f)
+        public IDisposableReadOnlyCollection<DisposableNamedOnnxValue> PredicteResults(List<NamedOnnxValue> inputs)
         {
             return session.Run(inputs);
         }
 
         public List<NamedOnnxValue> getInputs(Tensor<float> ImageTensor)
         {
-            return new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor(SessionInputName, ImageTensor) };
+            return new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor(SessionInputName, ImageTensor)};
         }
 
         public unsafe Tensor<float> ConvertBitmapToTensor(Bitmap bitmap, int width = 640, int height = 640)
