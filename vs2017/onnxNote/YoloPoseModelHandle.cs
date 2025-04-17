@@ -124,9 +124,24 @@ namespace YoloPoseOnnxHandle
             return session.Run(inputs);
         }
 
+        public List<IDisposableReadOnlyCollection<DisposableNamedOnnxValue>> PredictBatch(List<List<NamedOnnxValue>> batchedInputs)
+        {
+            var results = new List<IDisposableReadOnlyCollection<DisposableNamedOnnxValue>>();
+
+            foreach (var inputs in batchedInputs)
+            {
+                using (var result = session.Run(inputs))
+                {
+                    results.Add(result);
+                }
+            }
+
+            return results;
+        }
+
         public List<NamedOnnxValue> getInputs(Tensor<float> ImageTensor)
         {
-            return new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor(SessionInputName, ImageTensor)};
+            return new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor(SessionInputName, ImageTensor) };
         }
 
         public unsafe Tensor<float> ConvertBitmapToTensor(Bitmap bitmap, int width = 640, int height = 640)
@@ -209,7 +224,7 @@ namespace YoloPoseOnnxHandle
         }
 
 
-            public List<PoseInfo> PoseInfoRead(float[] outputArray, float confidenceThreshold = -1.0f)
+        public List<PoseInfo> PoseInfoRead(float[] outputArray, float confidenceThreshold = -1.0f)
         {
             if (confidenceThreshold < 0) { confidenceThreshold = ConfidenceThreshold; }
             List<PoseInfo> PoseInfos = new List<PoseInfo>();

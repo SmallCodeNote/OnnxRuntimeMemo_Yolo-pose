@@ -426,7 +426,6 @@ namespace onnxNote
         }
 
         ConcurrentQueue<frameDataSet> framePoseInfoQueue;
-
         private void dequeue_frameTensor()
         {
             Console.WriteLine("Start:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
@@ -481,76 +480,7 @@ namespace onnxNote
             }
             Console.WriteLine("Complete:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
         }
-
-        /*
-        private void dequeue_frameTensor()
-        {
-            Console.WriteLine($"...Start:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
-            framePoseInfoQueue = new ConcurrentQueue<frameDataSet>();
-            List<frameDataSet> frameInfos = new List<frameDataSet>();
-            Task task_Predict = null;
-
-            while (true)
-            {
-                if (frameTensorQueue != null && frameTensorQueue.TryDequeue(out frameDataSet frameInfo))
-                {
-                    if (frameInfo.frameIndex >= 0)
-                    {
-                        frameInfos.Add(frameInfo);
-                        Console.WriteLine($"frameInfos.Count = {frameInfos.Count}");
-
-                        if (frameInfos.Count >= 50)
-                        {
-                            if (task_Predict != null) task_Predict.Wait();
-                            task_Predict = Task.Run(() => ProcessBatch_Predicte(frameInfos.ToArray()));
-                            frameInfos.Clear();
-                        }
-                    }
-                    else
-                    {
-                        if (frameInfos.Count > 0)
-                        {
-                            if (task_Predict != null) task_Predict.Wait();
-                            task_Predict = Task.Run(() => ProcessBatch_Predicte(frameInfos.ToArray()));
-                            frameInfos.Clear();
-                        }
-
-                        framePoseInfoQueue.Enqueue(new frameDataSet(-1));
-                        break;
-                    }
-                }
-                else
-                {
-                    Thread.Sleep(1);
-                }
-            }
-            Console.WriteLine($"...Complete:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
-        }
-
-        private void ProcessBatch_Predicte(frameDataSet[] batch)
-        {
-            Console.WriteLine($"......Start:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
-            
-            foreach (var frameInfo in batch)
-            {
-                frameInfo.results = yoloPoseModelHandle.PredicteResults(frameInfo.inputs);
-            }
-
-            ProcessBatch_Enqueue(batch);
-            //Task.Run(() => ProcessBatch_Enqueue(batch));
-            Console.WriteLine($"......Complete: {batch.Length}  " + System.Reflection.MethodBase.GetCurrentMethod().Name);
-        }
-
-        private void ProcessBatch_Enqueue(frameDataSet[] batch)
-        {
-            Console.WriteLine($".........Start:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
-            foreach (var frameInfo in batch)
-            {
-                framePoseInfoQueue.Enqueue(frameInfo);
-            }
-            Console.WriteLine($".........Complete: {batch.Length}  " + System.Reflection.MethodBase.GetCurrentMethod().Name);
-        }
-        */
+ 
 
         ConcurrentQueue<frameDataSet> frameReportQueue;
         ConcurrentQueue<frameDataSet> frameVideoMatQueue;
