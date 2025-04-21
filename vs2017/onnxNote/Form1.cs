@@ -276,6 +276,8 @@ namespace onnxNote
             Task task_frameVideoMat = Task.Run(() => dequeue_frameVideoMat());
             Task task_frameShow = Task.Run(() => dequeue_frameShow());
 
+            int EnqueueWait = 100;
+            int EnqueueWaitInterval = 0;
             using (Mat frame = new Mat())
             {
                 while (capture.Read(frame) && !frame.Empty())
@@ -295,8 +297,14 @@ namespace onnxNote
 
                     if (frameBitmapQueue.Count >= 12)
                     {
-                        Thread.Sleep(3);
-                        Console.WriteLine($"QeueOver: {frameBitmapQueue.Count}  {System.Reflection.MethodBase.GetCurrentMethod().Name}");
+                        Console.WriteLine($"QeueOver: {frameBitmapQueue.Count} : {EnqueueWait} {System.Reflection.MethodBase.GetCurrentMethod().Name}");
+                        Thread.Sleep(EnqueueWait);
+                        if (EnqueueWaitInterval<12) EnqueueWait++;
+                        EnqueueWaitInterval = 0;
+                    }
+                    else
+                    {
+                        EnqueueWaitInterval++;
                     }
                 }
                 frameBitmapQueue.Enqueue(new frameDataSet(-1));
@@ -356,6 +364,10 @@ namespace onnxNote
                 });
             }
 
+
+            int EnqueueWait = 100;
+            int EnqueueWaitInterval = 0;
+
             while (true)
             {
                 if (frameBitmapQueue != null && frameBitmapQueue.TryDequeue(out frameDataSet frameInfo))
@@ -364,12 +376,18 @@ namespace onnxNote
                     {
                         frameBitmapQueueTemp.Add(frameInfo);
 
-                        if (frameTensorQueue.Count >= 32)
+                        if (frameBitmapQueue.Count >= 32)
                         {
-                            Thread.Sleep(10);
-
-                            Console.WriteLine($"QeueOver: {frameTensorQueue.Count} {System.Reflection.MethodBase.GetCurrentMethod().Name}");
+                            Thread.Sleep(EnqueueWait);
+                            if (EnqueueWaitInterval < 12) EnqueueWait++;
+                            Console.WriteLine($"QeueOver: {frameTensorQueue.Count} : {EnqueueWait} {System.Reflection.MethodBase.GetCurrentMethod().Name}");
+                            EnqueueWaitInterval = 0;
                         }
+                        else
+                        {
+                            EnqueueWaitInterval++;
+                        }
+
                     }
                     else
                     {
@@ -380,7 +398,7 @@ namespace onnxNote
                 }
                 else
                 {
-                    Thread.Sleep(1);
+                    Thread.Sleep(10);
 
                 }
             }
@@ -448,8 +466,9 @@ namespace onnxNote
                         if (frameTensorList.Count >= 16)
                         {
                             frameDataSet[] datasetArray = frameTensorList.ToArray();
-                            if (predictBatchTask != null) { predictBatchTask.Wait(); }
-                            predictBatchTask = Task.Run(() => PredictBatch(datasetArray));
+                            //if (predictBatchTask != null) { predictBatchTask.Wait(); }
+                            //predictBatchTask = Task.Run(() => PredictBatch(datasetArray));
+                            PredictBatch(datasetArray);
                             frameTensorList.Clear();
                         }
 
@@ -458,8 +477,10 @@ namespace onnxNote
                     {
                         frameTensorList.Add(new frameDataSet(-1));
                         frameDataSet[] datasetArray = frameTensorList.ToArray();
-                        if (predictBatchTask != null) { predictBatchTask.Wait(); }
-                        predictBatchTask = Task.Run(() => PredictBatch(datasetArray));
+                        //if (predictBatchTask != null) { predictBatchTask.Wait(); }
+                        //predictBatchTask = Task.Run(() => PredictBatch(datasetArray));
+                        PredictBatch(datasetArray);
+
                         frameTensorList.Clear();
 
                         break;
@@ -490,20 +511,17 @@ namespace onnxNote
                 }
             }
 
-            Task.Run(() => framePoseInfoQueueEnqueue(frameTensorArray));
-
-            Console.WriteLine("...Complete:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
+            //Task.Run(() => framePoseInfoQueueEnqueue(frameTensorArray));
+            framePoseInfoQueueEnqueue(frameTensorArray);
             return;
         }
 
         public void framePoseInfoQueueEnqueue(frameDataSet[] frameTensorArray)
         {
-            Console.WriteLine($"......Entry:{frameTensorArray.Length}" + System.Reflection.MethodBase.GetCurrentMethod().Name);
             foreach (var frameInfo in frameTensorArray)
             {
                 framePoseInfoQueue.Enqueue(frameInfo);
             }
-            Console.WriteLine("......Complete:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
         }
 
         ConcurrentQueue<frameDataSet> frameReportQueue;
@@ -868,7 +886,7 @@ namespace onnxNote
         {
             if (frameBitmapQueue != null && frameTensorQueue != null && framePoseInfoQueue != null && frameReportQueue != null)
             {
-                Console.WriteLine($"\t{DateTime.Now:HH:mm:ss}\t{frameBitmapQueue.Count}\t{frameTensorQueue.Count}\t{framePoseInfoQueue.Count}\t{frameReportQueue.Count}");
+                Console.WriteLine($"\t{DateTime.Now:HH:mm:ss}\tB{frameBitmapQueue.Count}\tT{frameTensorQueue.Count}\tP{framePoseInfoQueue.Count}\tR{frameReportQueue.Count}");
             }
         }
     }
