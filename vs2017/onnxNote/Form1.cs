@@ -166,7 +166,6 @@ namespace onnxNote
             }
         }
 
-
         void ParseYOLOOutput(float[] output)
         {
             Console.WriteLine("Detection results:");
@@ -221,10 +220,8 @@ namespace onnxNote
         YoloPoseModelHandle yoloPoseModelHandle;
         string masterPath = "";
 
-
         private void button_Save_Click(object sender, EventArgs e)
         {
-
             if (button_Save.Text == "Save")
             {
                 OpenFileDialog ofd = new OpenFileDialog();
@@ -254,6 +251,7 @@ namespace onnxNote
                 if (capture == null) return;
 
                 button_Save.Text = "Cancel";
+                timer1.Start();
                 backgroundWorker_posePredict.RunWorkerAsync();
             }
             else
@@ -261,7 +259,6 @@ namespace onnxNote
                 backgroundWorker_posePredict.CancelAsync();
             }
         }
-
 
         ConcurrentQueue<frameDataSet> frameBitmapQueue;
         string progressReport = "";
@@ -321,12 +318,16 @@ namespace onnxNote
 
         private void backgroundWorker_posePredict_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
+            timer1.Stop();
+            timer1_Tick(null, null);
             button_Save.Text = "Save";
         }
 
+        double minIndex_dequeue_frameBitmap = double.MaxValue;
         ConcurrentQueue<frameDataSet> frameTensorQueue;
         private void dequeue_frameBitmap()
         {
+            
             Console.WriteLine("Start:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
             frameTensorQueue = new ConcurrentQueue<frameDataSet>();
             var frameBitmapQueueTemp = new BlockingCollection<frameDataSet>();
@@ -341,23 +342,16 @@ namespace onnxNote
                     {
                         if (frameInfo.frameIndex >= 0)
                         {
+                            minIndex_dequeue_frameBitmap = minIndex_dequeue_frameBitmap > frameInfo.frameIndex ? frameInfo.frameIndex : minIndex_dequeue_frameBitmap;
+
                             using (Bitmap srcImage = new Bitmap(frameInfo.bitmap))
                             {
                                 Tensor<float> tensor = ConvertBitmapToTensor(srcImage);
                                 List<NamedOnnxValue> inputs = yoloPoseModelHandle.getInputs(tensor);
                                 frameTensorQueue.Enqueue(new frameDataSet(inputs, frameInfo.bitmap, frameInfo.frameIndex));
                             }
+                        }
 
-                            if (frameTensorQueue.Count >= 32)
-                            {
-                                Thread.Sleep(10);
-                                Console.WriteLine($"QeueOver:{i} {frameTensorQueue.Count} {System.Reflection.MethodBase.GetCurrentMethod().Name}");
-                            }
-                        }
-                        else
-                        {
-                            frameTensorQueue.Enqueue(new frameDataSet(-1));
-                        }
                     }
                 });
             }
@@ -369,10 +363,17 @@ namespace onnxNote
                     if (frameInfo.frameIndex >= 0)
                     {
                         frameBitmapQueueTemp.Add(frameInfo);
+
+                        if (frameTensorQueue.Count >= 32)
+                        {
+                            Thread.Sleep(10);
+
+                            Console.WriteLine($"QeueOver: {frameTensorQueue.Count} {System.Reflection.MethodBase.GetCurrentMethod().Name}");
+                        }
                     }
                     else
                     {
-                        frameBitmapQueueTemp.Add(frameInfo);
+                        //frameBitmapQueueTemp.Add(frameInfo);
                         frameBitmapQueueTemp.CompleteAdding();
                         break;
                     }
@@ -380,12 +381,15 @@ namespace onnxNote
                 else
                 {
                     Thread.Sleep(1);
+
                 }
             }
 
             Task.WaitAll(workers);
+            frameTensorQueue.Enqueue(new frameDataSet(-1));
             Console.WriteLine("Complete:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
         }
+
 
 
         public unsafe Tensor<float> ConvertBitmapToTensor(Bitmap bitmap, int width = 640, int height = 640)
@@ -430,61 +434,105 @@ namespace onnxNote
         {
             Console.WriteLine("Start:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
             framePoseInfoQueue = new ConcurrentQueue<frameDataSet>();
-            Stopwatch sw = new Stopwatch();
-            sw.Start();
-            long c0 = 0; long c1 = 0; long c2 = 0; long c3 = 0;
+            List<frameDataSet> frameTensorList = new List<frameDataSet>();
+            Task predictBatchTask = null;
             int loopCount = 0;
             while (true)
             {
-                sw.Reset(); sw.Start();
-                c0 = sw.ElapsedTicks;
                 if (frameTensorQueue != null && !frameTensorQueue.IsEmpty && frameTensorQueue.TryDequeue(out frameDataSet frameInfo))
                 {
+                    frameTensorList.Add(frameInfo);
+
                     if (frameInfo.frameIndex >= 0)
                     {
-                        c1 = sw.ElapsedTicks;
-                        var results = yoloPoseModelHandle.PredicteResults(frameInfo.inputs);
-                        c2 = sw.ElapsedTicks;
-                        framePoseInfoQueue.Enqueue(new frameDataSet(results, frameInfo.bitmap, frameInfo.frameIndex));
-                        c3 = sw.ElapsedTicks;
-
-                        if (framePoseInfoQueue.Count >= 32)
+                        if (frameTensorList.Count >= 16)
                         {
-                            Thread.Sleep(1);
-                            Console.WriteLine($"QeueOver: {framePoseInfoQueue.Count}  {System.Reflection.MethodBase.GetCurrentMethod().Name}");
-                        }
-
-
-                        if (loopCount > 100)
-                        {
-                            Console.WriteLine($"StopwatchReport: start={c0}, dequeue={c1 - c0}, predict={c2 - c1}, enqueue={c3 - c2},  {System.Reflection.MethodBase.GetCurrentMethod().Name}");
-                            loopCount = 0;
+                            frameDataSet[] datasetArray = frameTensorList.ToArray();
+                            if (predictBatchTask != null) { predictBatchTask.Wait(); }
+                            predictBatchTask = Task.Run(() => PredictBatch(datasetArray));
+                            frameTensorList.Clear();
                         }
 
                     }
                     else
                     {
-                        framePoseInfoQueue.Enqueue(new frameDataSet(-1));
+                        frameTensorList.Add(new frameDataSet(-1));
+                        frameDataSet[] datasetArray = frameTensorList.ToArray();
+                        if (predictBatchTask != null) { predictBatchTask.Wait(); }
+                        predictBatchTask = Task.Run(() => PredictBatch(datasetArray));
+                        frameTensorList.Clear();
+
                         break;
                     }
-
-
                 }
                 else
                 {
                     Thread.Sleep(1);
+
                 }
-
                 loopCount++;
-
             }
             Console.WriteLine("Complete:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
         }
- 
+
+
+        public void PredictBatch(frameDataSet[] frameTensorArray)
+        {
+            foreach (var frame in frameTensorArray)
+            {
+                if (frame.frameIndex >= 0)
+                {
+                    frame.results = yoloPoseModelHandle.PredicteResults(frame.inputs);
+                }
+                else
+                {
+                    frame.frameIndex = -1;
+                }
+            }
+
+            Task.Run(() => framePoseInfoQueueEnqueue(frameTensorArray));
+
+            Console.WriteLine("...Complete:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
+            return;
+        }
+
+        public void framePoseInfoQueueEnqueue(frameDataSet[] frameTensorArray)
+        {
+            Console.WriteLine($"......Entry:{frameTensorArray.Length}" + System.Reflection.MethodBase.GetCurrentMethod().Name);
+            foreach (var frameInfo in frameTensorArray)
+            {
+                framePoseInfoQueue.Enqueue(frameInfo);
+            }
+            Console.WriteLine("......Complete:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
+        }
 
         ConcurrentQueue<frameDataSet> frameReportQueue;
         ConcurrentQueue<frameDataSet> frameVideoMatQueue;
         ConcurrentQueue<frameDataSet> frameShowQueue;
+
+        private void dequeue_framePoseInfo_addQueue(frameDataSet frameInfo)
+        {
+            List<PoseInfo> poseInfos = yoloPoseModelHandle.PoseInfoRead(frameInfo.results);
+            frameInfo.results.Dispose();
+
+            frameReportQueue.Enqueue(new frameDataSet(poseInfos, frameInfo.frameIndex));
+
+            if (frameInfo.bitmap != null)
+            {
+                drawPose(frameInfo.bitmap, poseInfos);
+                using (Mat mat = BitmapConverter.ToMat(frameInfo.bitmap))
+                {
+                    Mat mat3C = mat.CvtColor(ColorConversionCodes.BGRA2BGR);
+                    frameVideoMatQueue.Enqueue(new frameDataSet(mat3C, frameInfo.frameIndex));
+                    frameShowQueue.Enqueue(new frameDataSet(frameInfo.bitmap, frameInfo.frameIndex));
+                }
+            }
+            else
+            {
+                Console.WriteLine($"ERROR: { System.Reflection.MethodBase.GetCurrentMethod().Name }  Null Bitmap");
+            }
+        }
+
 
         private void dequeue_framePoseInfo()
         {
@@ -493,33 +541,26 @@ namespace onnxNote
             frameVideoMatQueue = new ConcurrentQueue<frameDataSet>();
             frameShowQueue = new ConcurrentQueue<frameDataSet>();
 
+            int targetFrameIndex = 1;
+            List<frameDataSet> ListBuff = new List<frameDataSet>();
+
+
             while (true)
             {
                 if (framePoseInfoQueue != null && !framePoseInfoQueue.IsEmpty && framePoseInfoQueue.TryDequeue(out frameDataSet frameInfo))
                 {
                     if (frameInfo.frameIndex >= 0)
                     {
-                        //List<PoseInfo> poseInfos =  frameInfo.PoseInfos;
-                        List<PoseInfo> poseInfos = yoloPoseModelHandle.PoseInfoRead(frameInfo.results);
-                        frameInfo.results.Dispose();
-
-                        frameReportQueue.Enqueue(new frameDataSet(poseInfos, frameInfo.frameIndex));
-
-                        if (frameInfo.bitmap != null)
+                        if (targetFrameIndex == frameInfo.frameIndex)
                         {
-                            drawPose(frameInfo.bitmap, poseInfos);
-                            using (Mat mat = BitmapConverter.ToMat(frameInfo.bitmap))
-                            {
-                                Mat mat3C = mat.CvtColor(ColorConversionCodes.BGRA2BGR);
-                                frameVideoMatQueue.Enqueue(new frameDataSet(mat3C, frameInfo.frameIndex));
-                                frameShowQueue.Enqueue(new frameDataSet(frameInfo.bitmap, frameInfo.frameIndex));
-                            }
+
+                            dequeue_framePoseInfo_addQueue(frameInfo);
+                            targetFrameIndex++;
                         }
                         else
                         {
-                            Console.WriteLine($"ERROR: { System.Reflection.MethodBase.GetCurrentMethod().Name }  Null Bitmap");
+                            ListBuff.Add(frameInfo);
                         }
-
                     }
                     else
                     {
@@ -528,6 +569,20 @@ namespace onnxNote
                         frameShowQueue.Enqueue(new frameDataSet(-1));
 
                         break;
+                    }
+
+
+                    for (int i = 0; i < ListBuff.Count; i++)
+                    {
+
+                        if (ListBuff[i].frameIndex == targetFrameIndex)
+                        {
+
+                            dequeue_framePoseInfo_addQueue(ListBuff[i]);
+                            ListBuff.RemoveAt(i);
+                            i = 0;
+                            targetFrameIndex++;
+                        }
                     }
                 }
                 else
@@ -807,6 +862,14 @@ namespace onnxNote
         private void comboBox_DeviceID_SelectedIndexChanged(object sender, EventArgs e)
         {
             textBox_modelFilePath_TextChanged(null, null);
+        }
+
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            if (frameBitmapQueue != null && frameTensorQueue != null && framePoseInfoQueue != null && frameReportQueue != null)
+            {
+                Console.WriteLine($"\t{DateTime.Now:HH:mm:ss}\t{frameBitmapQueue.Count}\t{frameTensorQueue.Count}\t{framePoseInfoQueue.Count}\t{frameReportQueue.Count}");
+            }
         }
     }
 

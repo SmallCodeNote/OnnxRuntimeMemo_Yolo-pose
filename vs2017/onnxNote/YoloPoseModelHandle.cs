@@ -124,6 +124,16 @@ namespace YoloPoseOnnxHandle
             return session.Run(inputs);
         }
 
+        public List<IDisposableReadOnlyCollection<DisposableNamedOnnxValue>> PredicteResults(List<List<NamedOnnxValue>> inputsList)
+        {
+            List<IDisposableReadOnlyCollection<DisposableNamedOnnxValue>> results = new List<IDisposableReadOnlyCollection<DisposableNamedOnnxValue>>();
+            foreach (var inputs in inputsList)
+            {
+                results.Add(session.Run(inputs));
+            }
+            return results;
+        }
+
         public List<IDisposableReadOnlyCollection<DisposableNamedOnnxValue>> PredictBatch(List<List<NamedOnnxValue>> batchedInputs)
         {
             var results = new List<IDisposableReadOnlyCollection<DisposableNamedOnnxValue>>();

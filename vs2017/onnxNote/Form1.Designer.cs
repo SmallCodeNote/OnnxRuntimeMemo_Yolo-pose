@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage_YOLOPOSE = new System.Windows.Forms.TabPage();
             this.panel_Main = new System.Windows.Forms.Panel();
@@ -54,6 +55,7 @@
             this.comboBox_DeviceID = new System.Windows.Forms.ComboBox();
             this.label1 = new System.Windows.Forms.Label();
             this.backgroundWorker_posePredict = new System.ComponentModel.BackgroundWorker();
+            this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.tabControl1.SuspendLayout();
             this.tabPage_YOLOPOSE.SuspendLayout();
             this.panel_Main.SuspendLayout();
@@ -356,6 +358,11 @@
             this.backgroundWorker_posePredict.ProgressChanged += new System.ComponentModel.ProgressChangedEventHandler(this.backgroundWorker_posePredict_ProgressChanged);
             this.backgroundWorker_posePredict.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.backgroundWorker_posePredict_RunWorkerCompleted);
             // 
+            // timer1
+            // 
+            this.timer1.Interval = 1000;
+            this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
@@ -414,6 +421,7 @@
         private System.Windows.Forms.Label label_ConfThreshold;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.ComboBox comboBox_DeviceID;
+        private System.Windows.Forms.Timer timer1;
     }
 }
 
