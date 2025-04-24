@@ -250,9 +250,9 @@ namespace onnxNote
 
                 if (capture == null) return;
 
-                if(!int.TryParse(textBox_PredictBatchSize.Text,out predictTaskBatchSize))
+                if (!int.TryParse(textBox_PredictBatchSize.Text, out PredictTaskBatchSize))
                 {
-                    predictTaskBatchSize = 1024;
+                    PredictTaskBatchSize = 1024;
                 }
 
                 button_Save.Text = "Cancel";
@@ -372,10 +372,9 @@ namespace onnxNote
             int maxIndex = int.MinValue;
             bool isFirst = true;
 
-
             frameTensorQueue = new ConcurrentQueue<frameDataSet>();
 
-            var frameBitmapQueueTemp = new BlockingCollection<frameDataSet[]>();
+            var frameBitmapQueueTemp = new BlockingCollection<frameDataSet[]>(256);
 
             Task[] workers = new Task[8];
 
@@ -433,7 +432,8 @@ namespace onnxNote
                     {
                         if (frameTensorList.Count > 0)
                         {
-                            frameBitmapQueueTemp.Add(frameTensorList.ToArray());
+                            frameDataSet[] frameDataSets = frameTensorList.ToArray();
+                            frameBitmapQueueTemp.Add(frameDataSets);
                             frameTensorList.Clear();
                         }
 
@@ -456,10 +456,10 @@ namespace onnxNote
 
             Task.WaitAll(workers);
 
-            Console.WriteLine($"Complete: {maxIndex} { System.Reflection.MethodBase.GetCurrentMethod().Name}");
             frameTensorQueue.Enqueue(new frameDataSet(-1));
-
             frameBitmapQueueTemp.Dispose();
+
+            Console.WriteLine($"Complete: {maxIndex} { System.Reflection.MethodBase.GetCurrentMethod().Name}");
 
         }
 
@@ -503,7 +503,7 @@ namespace onnxNote
 
         ConcurrentQueue<frameDataSet> framePoseInfoQueue;
 
-        public int predictTaskBatchSize = 1024;
+        public int PredictTaskBatchSize = 1024;
 
         private void dequeue_frameTensor()
         {
@@ -518,7 +518,6 @@ namespace onnxNote
             int loopCount = 0;
             while (true)
             {
-                //&& !frameTensorQueue.IsEmpty
                 if (frameTensorQueue != null && frameTensorQueue.TryDequeue(out frameDataSet frameInfo))
                 {
                     if (isFirst)
@@ -527,32 +526,10 @@ namespace onnxNote
                         isFirst = false;
                     }
 
-
-                    if (frameInfo.frameIndex >= 0)
+                    frameTensorList.Add(frameInfo.frameIndex >= 0 ? frameInfo : new frameDataSet(-1));
+                    if (frameTensorList.Count >= PredictTaskBatchSize || frameInfo.frameIndex < 0)
                     {
-                        maxIndex = maxIndex < frameInfo.frameIndex ? frameInfo.frameIndex : maxIndex;
-                        frameTensorList.Add(frameInfo);
-
-                        if (frameTensorList.Count >= predictTaskBatchSize)
-                        {
-                            frameDataSet[] datasetArray = frameTensorList.ToArray();
-                            if (predictBatchTask != null)
-                            {
-                                predictBatchTask.Wait();
-                                Console.WriteLine($"...Complete Predict Batch: " + System.Reflection.MethodBase.GetCurrentMethod().Name);
-                            }
-
-                            Console.WriteLine($"...Start Predict Batch: {frameTensorList.Count} " + System.Reflection.MethodBase.GetCurrentMethod().Name);
-                            predictBatchTask = Task.Run(() => PredictBatch(datasetArray));
-
-                            frameTensorList.Clear();
-                        }
-
-                    }
-                    else
-                    {
-                        frameTensorList.Add(new frameDataSet(-1));
-                        frameDataSet[] datasetArray = frameTensorList.ToArray();
+                        var datasetArray = frameTensorList.ToArray();
 
                         if (predictBatchTask != null)
                         {
@@ -564,9 +541,9 @@ namespace onnxNote
                         predictBatchTask = Task.Run(() => PredictBatch(datasetArray));
 
                         frameTensorList.Clear();
-
-                        break;
+                        if (frameInfo.frameIndex < 0) break;
                     }
+
                 }
                 else
                 {
