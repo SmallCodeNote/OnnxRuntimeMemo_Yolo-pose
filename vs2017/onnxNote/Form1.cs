@@ -217,9 +217,8 @@ namespace onnxNote
             }
         }
 
+        string masterDirectoryPath = "";
         YoloPoseModelHandle yoloPoseModelHandle;
-        string masterPath = "";
-
 
         private void button_Save_Click(object sender, EventArgs e)
         {
@@ -235,7 +234,7 @@ namespace onnxNote
                 sfd.Filter = "";
                 if (sfd.ShowDialog() != DialogResult.OK) return;
 
-                masterPath = Path.Combine(Path.GetDirectoryName(sfd.FileName), Path.GetFileNameWithoutExtension(sfd.FileName));
+                masterDirectoryPath = Path.Combine(Path.GetDirectoryName(sfd.FileName), Path.GetFileNameWithoutExtension(sfd.FileName));
 
                 string ext = Path.GetExtension(ofd.FileName);
 
@@ -254,7 +253,6 @@ namespace onnxNote
                 if(!int.TryParse(textBox_PredictBatchSize.Text,out predictTaskBatchSize))
                 {
                     predictTaskBatchSize = 1024;
-                    
                 }
 
                 button_Save.Text = "Cancel";
@@ -275,7 +273,7 @@ namespace onnxNote
         private void backgroundWorker_posePredict_DoWork(object sender, DoWorkEventArgs e)
         {
             BackgroundWorker worker = (BackgroundWorker)sender;
-            if (!Directory.Exists(masterPath)) { Directory.CreateDirectory(masterPath); };
+            if (!Directory.Exists(masterDirectoryPath)) { Directory.CreateDirectory(masterDirectoryPath); };
 
             taskStartTime = DateTime.Now;
 
@@ -315,7 +313,6 @@ namespace onnxNote
 
         private void dequeue_frameVideoReader(BackgroundWorker worker, DoWorkEventArgs e)
         {
-
             int maxIndex = int.MinValue;
             Console.WriteLine("Start:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
             frameBitmapQueue = new ConcurrentQueue<frameDataSet>();
@@ -361,6 +358,8 @@ namespace onnxNote
                 frameBitmapList.Clear();
                 frameBitmapQueue.Enqueue(new frameDataSet(-1));
             }
+
+            worker.ReportProgress(0);
 
             capture.Dispose();
             Console.WriteLine($"Complete: {maxIndex} { System.Reflection.MethodBase.GetCurrentMethod().Name}");
@@ -736,16 +735,16 @@ namespace onnxNote
             List<string> KneeKeyPoint = new List<string>();
             List<string> AnkleKeyPoint = new List<string>();
 
-            string pathHead = Path.Combine(masterPath, "Head.csv");
-            string pathNose = Path.Combine(masterPath, "Nose.csv");
-            string pathEye = Path.Combine(masterPath, "Eye.csv");
-            string pathEar = Path.Combine(masterPath, "Ear.csv");
-            string pathShoulder = Path.Combine(masterPath, "Shoulder.csv");
-            string pathElbow = Path.Combine(masterPath, "Elbow.csv");
-            string pathWrist = Path.Combine(masterPath, "Wrist.csv");
-            string pathHip = Path.Combine(masterPath, "Hip.csv");
-            string pathKnee = Path.Combine(masterPath, "Knee.csv");
-            string pathAnkle = Path.Combine(masterPath, "Ankle.csv");
+            string pathHead = Path.Combine(masterDirectoryPath, "Head.csv");
+            string pathNose = Path.Combine(masterDirectoryPath, "Nose.csv");
+            string pathEye = Path.Combine(masterDirectoryPath, "Eye.csv");
+            string pathEar = Path.Combine(masterDirectoryPath, "Ear.csv");
+            string pathShoulder = Path.Combine(masterDirectoryPath, "Shoulder.csv");
+            string pathElbow = Path.Combine(masterDirectoryPath, "Elbow.csv");
+            string pathWrist = Path.Combine(masterDirectoryPath, "Wrist.csv");
+            string pathHip = Path.Combine(masterDirectoryPath, "Hip.csv");
+            string pathKnee = Path.Combine(masterDirectoryPath, "Knee.csv");
+            string pathAnkle = Path.Combine(masterDirectoryPath, "Ankle.csv");
 
             string lineHead = "";
             string lineNose = "";
@@ -895,7 +894,7 @@ namespace onnxNote
         private void dequeue_frameVideoMat()
         {
             bool isFirst = true;
-            string videoPath = Path.Combine(masterPath, Path.GetFileNameWithoutExtension(masterPath) + "_pose.mp4");
+            string videoPath = Path.Combine(masterDirectoryPath, Path.GetFileNameWithoutExtension(masterDirectoryPath) + "_pose.mp4");
 
             using (VideoWriter video = new VideoWriter(videoPath, FourCC.FromString("mp4v"), 30, new OpenCvSharp.Size(640, 360)))
             {
