@@ -52,6 +52,8 @@
             this.button_OpenModelFile = new System.Windows.Forms.Button();
             this.label_modelPath = new System.Windows.Forms.Label();
             this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.textBox_PredictBatchSize = new System.Windows.Forms.TextBox();
+            this.label2 = new System.Windows.Forms.Label();
             this.comboBox_DeviceID = new System.Windows.Forms.ComboBox();
             this.label1 = new System.Windows.Forms.Label();
             this.backgroundWorker_posePredict = new System.ComponentModel.BackgroundWorker();
@@ -317,6 +319,8 @@
             // tabPage2
             // 
             this.tabPage2.AutoScroll = true;
+            this.tabPage2.Controls.Add(this.textBox_PredictBatchSize);
+            this.tabPage2.Controls.Add(this.label2);
             this.tabPage2.Controls.Add(this.comboBox_DeviceID);
             this.tabPage2.Controls.Add(this.label1);
             this.tabPage2.Location = new System.Drawing.Point(4, 22);
@@ -326,6 +330,24 @@
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "Setting";
             this.tabPage2.UseVisualStyleBackColor = true;
+            // 
+            // textBox_PredictBatchSize
+            // 
+            this.textBox_PredictBatchSize.Location = new System.Drawing.Point(10, 112);
+            this.textBox_PredictBatchSize.Name = "textBox_PredictBatchSize";
+            this.textBox_PredictBatchSize.Size = new System.Drawing.Size(100, 19);
+            this.textBox_PredictBatchSize.TabIndex = 3;
+            this.textBox_PredictBatchSize.Text = "1024";
+            this.textBox_PredictBatchSize.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(8, 97);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(100, 12);
+            this.label2.TabIndex = 2;
+            this.label2.Text = "Predict Batch Size";
             // 
             // comboBox_DeviceID
             // 
@@ -422,6 +444,8 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.ComboBox comboBox_DeviceID;
         private System.Windows.Forms.Timer timer1;
+        private System.Windows.Forms.TextBox textBox_PredictBatchSize;
+        private System.Windows.Forms.Label label2;
     }
 }
 
