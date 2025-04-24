@@ -297,24 +297,35 @@ namespace onnxNote
                         break;
                     }
 
-                    if (frameBitmapList.Count > 64)
+                    if (frameBitmapList.Count >= 64)
                     {
                         worker.ReportProgress(0);
+                        Console.WriteLine($" ...AddL: {frameBitmapList.Count} { System.Reflection.MethodBase.GetCurrentMethod().Name}");
 
                         foreach (var item in frameBitmapList)
                         {
                             frameBitmapQueue.Enqueue(item);
                             frameBitmapQueueCount.Enqueue(item.frameIndex);
                         }
+                        /*
+                        frameDataSet[] frameBitmapArray = frameBitmapList.ToArray();
+                        frameBitmapQueue_Enqueue_FromArray(frameBitmapArray);
+                    */
+
                         frameBitmapList.Clear();
+
+                        Console.WriteLine($" ...AddQ: {frameBitmapQueue.Count} { System.Reflection.MethodBase.GetCurrentMethod().Name}");
+
                     }
                 }
 
+                Console.WriteLine($" ...AddL: {frameBitmapList.Count} { System.Reflection.MethodBase.GetCurrentMethod().Name}");
                 foreach (var item in frameBitmapList)
                 {
                     frameBitmapQueue.Enqueue(item);
                     frameBitmapQueueCount.Enqueue(item.frameIndex);
                 }
+                Console.WriteLine($" ...AddQ: {frameBitmapQueue.Count} { System.Reflection.MethodBase.GetCurrentMethod().Name}");
 
                 frameBitmapList.Clear();
                 frameBitmapQueue.Enqueue(new frameDataSet(-1));
@@ -330,6 +341,16 @@ namespace onnxNote
             task_frameShow.Wait();
         }
 
+        private void frameBitmapQueue_Enqueue_FromArray(frameDataSet[] frameBitmapArray)
+        {
+            foreach (var item in frameBitmapArray)
+            {
+                frameBitmapQueue.Enqueue(item);
+                frameBitmapQueueCount.Enqueue(item.frameIndex);
+            }
+
+        }
+
         private void backgroundWorker_posePredict_ProgressChanged(object sender, ProgressChangedEventArgs e)
         {
             label_FrameCount.Text = progressReport;
@@ -342,6 +363,7 @@ namespace onnxNote
             timer1_Tick(null, null);
             button_Save.Text = "Save";
 
+            /*
             int maxRows = (new int[] { frameBitmapQueueCount.Count, frameTensorQueueCount.Count, framePoseInfoQueueCount.Count, frameReportQueueCount.Count }).Max();
             string[] lines = new string[maxRows];
 
@@ -391,12 +413,11 @@ namespace onnxNote
 
             }
 
-
             foreach (var item in lines)
             {
                 Console.WriteLine(item);
             }
-
+            */
 
         }
 
@@ -448,7 +469,8 @@ namespace onnxNote
                         }
 
                         frameTensorListTemp.Clear();
-                        Thread.Sleep(1);
+
+                        //Task.Delay(1);//Thread.Sleep(1);
                     }
 
                 });
@@ -476,8 +498,10 @@ namespace onnxNote
                         break;
                     }
 
-                    if (frameTensorList.Count > 64)
+                    if (frameTensorList.Count >= 64)
                     {
+                        Console.WriteLine($" ...AddL: {frameTensorList.Count} { System.Reflection.MethodBase.GetCurrentMethod().Name}");
+
                         frameDataSet[] frameDataSets = frameTensorList.ToArray();
                         frameBitmapQueueTemp.Add(frameDataSets);
                         frameTensorList.Clear();
@@ -486,8 +510,8 @@ namespace onnxNote
                 }
                 else
                 {
-                    Thread.Sleep(10);
 
+                    //Task.Delay(10);//Thread.Sleep(10);
                 }
             }
 
@@ -557,8 +581,15 @@ namespace onnxNote
                         maxIndex = maxIndex < frameInfo.frameIndex ? frameInfo.frameIndex : maxIndex;
                         frameTensorList.Add(frameInfo);
 
-                        if (frameTensorList.Count >= 512)
+                        if (frameTensorList.Count % 64 == 0)
                         {
+                            Console.WriteLine($" ...AddL: {frameTensorList.Count} { System.Reflection.MethodBase.GetCurrentMethod().Name}");
+                        }
+
+
+                        if (frameTensorList.Count >= 64)
+                        {
+                            
                             frameDataSet[] datasetArray = frameTensorList.ToArray();
                             if (predictBatchTask != null) { predictBatchTask.Wait(); }
                             predictBatchTask = Task.Run(() => PredictBatch(datasetArray));
@@ -582,8 +613,8 @@ namespace onnxNote
                 }
                 else
                 {
-                    Thread.Sleep(1);
 
+                    //Task.Delay(1);//Thread.Sleep(1);
                 }
                 loopCount++;
             }
@@ -695,21 +726,7 @@ namespace onnxNote
                         }
                     }
 
-
-
-/*
-                    if (framePoseInfoQueue.Count == 0 && flagFin)
-                    {
-                        frameReportQueue.Enqueue(new frameDataSet(-1));
-                        frameReportQueueCount.Enqueue(-1);
-
-                        frameVideoMatQueue.Enqueue(new frameDataSet(-1));
-                        frameShowQueue.Enqueue(new frameDataSet(-1));
-
-                        //break;
-                    }
-                    */
-                    if(frameReportQueueCount.Count >= frameBitmapQueueCount.Count-1)
+                    if (flagFin)
                     {
                         frameReportQueue.Enqueue(new frameDataSet(-1));
                         frameReportQueueCount.Enqueue(-1);
@@ -723,7 +740,8 @@ namespace onnxNote
                 }
                 else
                 {
-                    Thread.Sleep(1);
+
+                    //Task.Delay(1);//Thread.Sleep(1);
                 }
             }
             Console.WriteLine($"Complete: {targetFrameIndex} " + System.Reflection.MethodBase.GetCurrentMethod().Name);
@@ -819,7 +837,8 @@ namespace onnxNote
                 }
                 else
                 {
-                    Thread.Sleep(1);
+
+                    //Task.Delay(1);//Thread.Sleep(1);
                 }
             }
 
@@ -864,7 +883,7 @@ namespace onnxNote
                 }
                 else
                 {
-                    Thread.Sleep(1);
+                    //Task.Delay(1); //Thread.Sleep(1);
                 }
             }
             Console.WriteLine("Complete:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
@@ -919,7 +938,7 @@ namespace onnxNote
                     }
                     else
                     {
-                        Thread.Sleep(1);
+                        //Task.Delay(1); //Thread.Sleep(1);
                     }
                 }
                 video.Release();
