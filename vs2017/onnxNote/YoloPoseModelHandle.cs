@@ -420,6 +420,62 @@ namespace YoloPoseOnnxHandle
         public KeyPoint AnkleLeft;
         public KeyPoint AnkleRight;
 
+        private float KeyPointAngle(KeyPoint p0, float Confidence0, KeyPoint p1, float Confidence1, KeyPoint p2, float Confidence2)
+        {
+            if (p0.Confidence >= Confidence0 && p1.Confidence >= Confidence1 && p2.Confidence >= Confidence2)
+            {
+                double v1X = p1.X - p0.X;
+                double v1Y = p1.Y - p0.Y;
+                double v2X = p2.X - p0.X;
+                double v2Y = p2.Y - p0.Y;
+
+                double dotProduct = v1X * v2X + v1Y * v2Y;
+
+                double magnitudeV1 = Math.Sqrt(v1X * v1X + v1Y * v1Y);
+                double magnitudeV2 = Math.Sqrt(v2X * v2X + v2Y * v2Y);
+
+                double angleRad = Math.Acos(dotProduct / (magnitudeV1 * magnitudeV2));
+
+                return (float)(angleRad * (180 / Math.PI));
+            }
+            else
+            {
+                return -1f;
+            }
+        }
+
+        private float KeyPointLength(KeyPoint p0, float Confidence0, KeyPoint p1, float Confidence1)
+        {
+            if (p0.Confidence >= Confidence0 && p1.Confidence >= Confidence1)
+            {
+                double v1X = p1.X - p0.X;
+                double v1Y = p1.Y - p0.Y;
+
+                return (float)(Math.Sqrt(v1X * v1X + v1Y * v1Y));
+            }
+            else
+            {
+                return -1f;
+            }
+        }
+
+
+        private float KeyPointLength0(KeyPoint p0, float Confidence0, KeyPoint p1, float Confidence1)
+        {
+            if (p0.Confidence >= Confidence0 && p1.Confidence >= Confidence1)
+            {
+                double v1X = p1.X - p0.X;
+                double v1Y = p1.Y - p0.Y;
+
+                return (float)(Math.Sqrt(v1X * v1X + v1Y * v1Y));
+            }
+            else
+            {
+                return -1f;
+            }
+        }
+
+
         private KeyPoint KeyPointSum(KeyPoint p1, KeyPoint p2, float Confidence)
         {
             if (p1.Confidence >= Confidence && p2.Confidence >= Confidence)
@@ -482,6 +538,26 @@ namespace YoloPoseOnnxHandle
         public KeyPoint Knee() { return KeyPointSum(KneeLeft, KneeRight, confidenceLevel_Knee); }
         public KeyPoint Ankle() { return KeyPointSum(AnkleLeft, AnkleRight, confidenceLevel_Ankle); }
 
+        public float ElbowLeftAngle { get { return KeyPointAngle(ElbowLeft, confidenceLevel_Elbow, ShoulderLeft, confidenceLevel_Shoulder, WristLeft, confidenceLevel_Wrist); } }
+        public float ElbowRightAngle { get { return KeyPointAngle(ElbowRight, confidenceLevel_Elbow, ShoulderRight, confidenceLevel_Shoulder, WristRight, confidenceLevel_Wrist); } }
+        public float KneeLeftAngle { get { return KeyPointAngle(KneeLeft, confidenceLevel_Knee, HipLeft, confidenceLevel_Hip, AnkleLeft, confidenceLevel_Ankle); } }
+        public float KneeRightAngle { get { return KeyPointAngle(KneeRight, confidenceLevel_Knee, HipRight, confidenceLevel_Hip,  AnkleRight, confidenceLevel_Ankle); } }
+
+        public float WristLeftLength { get { return KeyPointLength(ElbowLeft, confidenceLevel_Elbow, WristLeft, confidenceLevel_Wrist); } }
+        public float WristRightLength { get { return KeyPointLength(ElbowRight, confidenceLevel_Elbow, WristRight, confidenceLevel_Wrist); } }
+        public float ElbowLeftLength { get { return KeyPointLength(ShoulderLeft, confidenceLevel_Shoulder, ElbowLeft, confidenceLevel_Elbow); } }
+        public float ElbowRightLength { get { return KeyPointLength(ShoulderRight, confidenceLevel_Shoulder, ElbowRight, confidenceLevel_Elbow); } }
+        public float KneeLeftLength { get { return KeyPointLength(HipLeft, confidenceLevel_Hip, KneeLeft, confidenceLevel_Knee); } }
+        public float KneeRightLength { get { return KeyPointLength(HipRight, confidenceLevel_Hip, KneeRight, confidenceLevel_Knee); } }
+        public float AnkleLeftLength { get { return KeyPointLength(KneeLeft, confidenceLevel_Knee, AnkleLeft, confidenceLevel_Ankle); } }
+        public float AnkleRightLength { get { return KeyPointLength(KneeRight, confidenceLevel_Knee, AnkleRight, confidenceLevel_Ankle); } }
+
+        public float ShoulderWidth { get { return KeyPointLength0(ShoulderLeft, confidenceLevel_Shoulder, ShoulderRight, confidenceLevel_Shoulder); } }
+        public float HipWidth { get { return KeyPointLength0(HipLeft, confidenceLevel_Hip, HipRight, confidenceLevel_Hip); } }
+        public float EyeWidth { get { return KeyPointLength0(EyeLeft, confidenceLevel_Eye, EyeRight, confidenceLevel_Eye); } }
+        public float EarWidth { get { return KeyPointLength0(EarLeft, confidenceLevel_Ear, EarRight, confidenceLevel_Ear); } }
+
+
         public float confidenceLevel_Head = 0.6f;
         public float confidenceLevel_Eye = 0.6f;
         public float confidenceLevel_Ear = 0.6f;
@@ -512,7 +588,6 @@ namespace YoloPoseOnnxHandle
             AnkleLeft = new KeyPoint(output, startIndex, 15);
             AnkleRight = new KeyPoint(output, startIndex, 16);
         }
-
 
         public void drawBone(Graphics g, float confidenceLevel = 0.6f, float diameter = 8)
         {

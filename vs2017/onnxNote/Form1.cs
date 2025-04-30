@@ -695,8 +695,6 @@ namespace onnxNote
             Console.WriteLine($"Complete: {targetFrameIndex} " + System.Reflection.MethodBase.GetCurrentMethod().Name);
         }
 
-
-
         private void dequeue_frameReport()
         {
             //Console.WriteLine("Start:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
@@ -712,6 +710,9 @@ namespace onnxNote
             List<string> KneeKeyPoint = new List<string>();
             List<string> AnkleKeyPoint = new List<string>();
 
+            List<string> PoseValue = new List<string>();
+
+
             string pathHead = Path.Combine(masterDirectoryPath, "Head.csv");
             string pathNose = Path.Combine(masterDirectoryPath, "Nose.csv");
             string pathEye = Path.Combine(masterDirectoryPath, "Eye.csv");
@@ -722,6 +723,8 @@ namespace onnxNote
             string pathHip = Path.Combine(masterDirectoryPath, "Hip.csv");
             string pathKnee = Path.Combine(masterDirectoryPath, "Knee.csv");
             string pathAnkle = Path.Combine(masterDirectoryPath, "Ankle.csv");
+
+            string pathPose = Path.Combine(masterDirectoryPath, "Pose.csv");
 
             string lineHead = "";
             string lineNose = "";
@@ -734,7 +737,15 @@ namespace onnxNote
             string lineKnee = "";
             string lineAnkle = "";
 
+            string linePose = "";
+
             bool isFirst = true;
+
+            PoseValue.Add("frame,Head.X,Head.Y,Head.conf,"
+                  + "ElbowLeftAngle,ElbowLeftLength,WristLeftLength,ElbowRightAngle,ElbowRightLength,WristRightLength,"
+                  + "KneeLeftAngle,KneeLeftLength,AnkleLeftLength,KneeRightAngle,KneeRightLength,AnkleRightLength,"
+                  + "EyeWidth,EarWidth,ShoulderWidth,HipWidth");
+
 
             while (true)
             {
@@ -761,18 +772,28 @@ namespace onnxNote
                         lineKnee = posFrame;
                         lineAnkle = posFrame;
 
+                        linePose = posFrame;
+
                         foreach (var pose in frameInfo.PoseInfos)
                         {
-                            lineHead += "," + pose.KeyPoints.Head().ToString();
-                            lineNose += "," + pose.KeyPoints.Nose.ToString();
-                            lineEye += "," + pose.KeyPoints.Eye().ToString();
-                            lineEar += "," + pose.KeyPoints.Ear().ToString();
-                            lineShoulder += "," + pose.KeyPoints.Shoulder().ToString();
-                            lineElbow += "," + pose.KeyPoints.Elbow().ToString();
-                            lineWrist += "," + pose.KeyPoints.Wrist().ToString();
-                            lineHip += "," + pose.KeyPoints.Hip().ToString();
-                            lineKnee += "," + pose.KeyPoints.Knee().ToString();
-                            lineAnkle += "," + pose.KeyPoints.Ankle().ToString();
+                            lineHead += $",{pose.KeyPoints.Head()}";
+                            lineNose += $",{pose.KeyPoints.Nose}";
+                            lineEye += $",{pose.KeyPoints.Eye()}";
+                            lineEar += $",{pose.KeyPoints.Ear()}";
+                            lineShoulder += $",{pose.KeyPoints.Shoulder()}";
+                            lineElbow += $",{pose.KeyPoints.Elbow()}";
+                            lineWrist += $",{pose.KeyPoints.Wrist()}";
+                            lineHip += $",{pose.KeyPoints.Hip()}";
+                            lineKnee += $",{pose.KeyPoints.Knee()}";
+                            lineAnkle += $",{pose.KeyPoints.Ankle()}";
+
+                            linePose += $",{pose.KeyPoints.Head()}";
+                            linePose += $",{pose.KeyPoints.ElbowLeftAngle:0},{pose.KeyPoints.ElbowLeftLength:0},{pose.KeyPoints.WristLeftLength:0}";
+                            linePose += $",{pose.KeyPoints.ElbowRightAngle:0},{pose.KeyPoints.ElbowRightLength:0},{pose.KeyPoints.WristRightLength:0}";
+                            linePose += $",{pose.KeyPoints.KneeLeftAngle:0},{pose.KeyPoints.KneeLeftLength:0},{pose.KeyPoints.AnkleLeftLength:0}";
+                            linePose += $",{pose.KeyPoints.KneeRightAngle:0},{pose.KeyPoints.KneeRightLength:0},{pose.KeyPoints.AnkleRightLength:0}";
+                            linePose += $",{pose.KeyPoints.EyeWidth:0},{pose.KeyPoints.EarWidth:0},{pose.KeyPoints.ShoulderWidth:0},{pose.KeyPoints.HipWidth:0}";
+
                         }
 
                         HeadKeyPoint.Add(lineHead);
@@ -785,6 +806,8 @@ namespace onnxNote
                         HipKeyPoint.Add(lineHip);
                         KneeKeyPoint.Add(lineKnee);
                         AnkleKeyPoint.Add(lineAnkle);
+
+                        PoseValue.Add(linePose);
                     }
                     else
                     {
@@ -807,6 +830,8 @@ namespace onnxNote
             File.AppendAllLines(pathHip, HipKeyPoint);
             File.AppendAllLines(pathKnee, KneeKeyPoint);
             File.AppendAllLines(pathAnkle, AnkleKeyPoint);
+
+            File.AppendAllLines(pathPose, PoseValue);
 
             Console.WriteLine("Complete:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
         }
