@@ -541,7 +541,7 @@ namespace YoloPoseOnnxHandle
         public float ElbowLeftAngle { get { return KeyPointAngle(ElbowLeft, confidenceLevel_Elbow, ShoulderLeft, confidenceLevel_Shoulder, WristLeft, confidenceLevel_Wrist); } }
         public float ElbowRightAngle { get { return KeyPointAngle(ElbowRight, confidenceLevel_Elbow, ShoulderRight, confidenceLevel_Shoulder, WristRight, confidenceLevel_Wrist); } }
         public float KneeLeftAngle { get { return KeyPointAngle(KneeLeft, confidenceLevel_Knee, HipLeft, confidenceLevel_Hip, AnkleLeft, confidenceLevel_Ankle); } }
-        public float KneeRightAngle { get { return KeyPointAngle(KneeRight, confidenceLevel_Knee, HipRight, confidenceLevel_Hip,  AnkleRight, confidenceLevel_Ankle); } }
+        public float KneeRightAngle { get { return KeyPointAngle(KneeRight, confidenceLevel_Knee, HipRight, confidenceLevel_Hip, AnkleRight, confidenceLevel_Ankle); } }
 
         public float WristLeftLength { get { return KeyPointLength(ElbowLeft, confidenceLevel_Elbow, WristLeft, confidenceLevel_Wrist); } }
         public float WristRightLength { get { return KeyPointLength(ElbowRight, confidenceLevel_Elbow, WristRight, confidenceLevel_Wrist); } }
@@ -552,11 +552,13 @@ namespace YoloPoseOnnxHandle
         public float AnkleLeftLength { get { return KeyPointLength(KneeLeft, confidenceLevel_Knee, AnkleLeft, confidenceLevel_Ankle); } }
         public float AnkleRightLength { get { return KeyPointLength(KneeRight, confidenceLevel_Knee, AnkleRight, confidenceLevel_Ankle); } }
 
+        public float BodyLength { get { return KeyPointLength(Shoulder(), confidenceLevel_Shoulder, Hip(), confidenceLevel_Hip); } }
+
+
         public float ShoulderWidth { get { return KeyPointLength0(ShoulderLeft, confidenceLevel_Shoulder, ShoulderRight, confidenceLevel_Shoulder); } }
         public float HipWidth { get { return KeyPointLength0(HipLeft, confidenceLevel_Hip, HipRight, confidenceLevel_Hip); } }
         public float EyeWidth { get { return KeyPointLength0(EyeLeft, confidenceLevel_Eye, EyeRight, confidenceLevel_Eye); } }
         public float EarWidth { get { return KeyPointLength0(EarLeft, confidenceLevel_Ear, EarRight, confidenceLevel_Ear); } }
-
 
         public float confidenceLevel_Head = 0.6f;
         public float confidenceLevel_Eye = 0.6f;
@@ -567,6 +569,22 @@ namespace YoloPoseOnnxHandle
         public float confidenceLevel_Hip = 0.6f;
         public float confidenceLevel_Knee = 0.6f;
         public float confidenceLevel_Ankle = 0.6f;
+
+
+        public void setConfidenceLevel(float confidenceLevel)
+        {
+            confidenceLevel_Head = confidenceLevel;
+            confidenceLevel_Eye = confidenceLevel;
+            confidenceLevel_Ear = confidenceLevel;
+            confidenceLevel_Shoulder = confidenceLevel;
+            confidenceLevel_Elbow = confidenceLevel;
+            confidenceLevel_Wrist = confidenceLevel;
+            confidenceLevel_Hip = confidenceLevel;
+            confidenceLevel_Knee = confidenceLevel;
+            confidenceLevel_Ankle = confidenceLevel;
+
+        }
+
 
         public PoseKeyPoints(float[] output, int startIndex)
         {

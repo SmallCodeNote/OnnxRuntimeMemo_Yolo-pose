@@ -318,6 +318,11 @@ namespace onnxNote
             frameBitmapQueue = new ConcurrentQueue<frameDataSet>();
             List<frameDataSet> frameBitmapList = new List<frameDataSet>();
 
+            DateTime lastAddTime = DateTime.Now;
+            TimeSpan addInterval = new TimeSpan(1000);
+            int waitTime = 100;
+            int addCount = 0;
+
             using (Mat frame = new Mat())
             {
                 while (capture.Read(frame) && !frame.Empty())
@@ -337,7 +342,7 @@ namespace onnxNote
                         break;
                     }
 
-                    if (frameBitmapList.Count >= 128)
+                    if (frameBitmapList.Count >= PredictTaskBatchSize)
                     {
                         worker.ReportProgress(0);
 
@@ -347,6 +352,27 @@ namespace onnxNote
                         }
 
                         frameBitmapList.Clear();
+                        addInterval = lastAddTime - DateTime.Now;
+                        lastAddTime = DateTime.Now;
+
+                        if (addCount > 0)
+                        {
+                            waitTime -= addInterval.Milliseconds / 10;
+                            Console.WriteLine($"  ...waitUpdate-: {waitTime} { System.Reflection.MethodBase.GetCurrentMethod().Name}");
+                        }
+                        addCount++;
+
+                    }
+
+                    if (frameBitmapQueue.Count >= PredictTaskBatchSize * 3)
+                    {
+                        if (addCount == 0)
+                        {
+                            waitTime += addInterval.Milliseconds / 10;
+                            Console.WriteLine($"  ...waitUpdate+: {waitTime} { System.Reflection.MethodBase.GetCurrentMethod().Name}");
+                        }
+                        Thread.Sleep(waitTime);
+                        addCount = 0;
                     }
                 }
 
@@ -744,7 +770,7 @@ namespace onnxNote
             PoseValue.Add("frame,Head.X,Head.Y,Head.conf,"
                   + "ElbowLeftAngle,ElbowLeftLength,WristLeftLength,ElbowRightAngle,ElbowRightLength,WristRightLength,"
                   + "KneeLeftAngle,KneeLeftLength,AnkleLeftLength,KneeRightAngle,KneeRightLength,AnkleRightLength,"
-                  + "EyeWidth,EarWidth,ShoulderWidth,HipWidth");
+                  + "EyeWidth,EarWidth,ShoulderWidth,HipWidth,BodyLength");
 
 
             while (true)
@@ -793,7 +819,7 @@ namespace onnxNote
                             linePose += $",{pose.KeyPoints.KneeLeftAngle:0},{pose.KeyPoints.KneeLeftLength:0},{pose.KeyPoints.AnkleLeftLength:0}";
                             linePose += $",{pose.KeyPoints.KneeRightAngle:0},{pose.KeyPoints.KneeRightLength:0},{pose.KeyPoints.AnkleRightLength:0}";
                             linePose += $",{pose.KeyPoints.EyeWidth:0},{pose.KeyPoints.EarWidth:0},{pose.KeyPoints.ShoulderWidth:0},{pose.KeyPoints.HipWidth:0}";
-
+                            linePose += $",{pose.KeyPoints.BodyLength:0}";
                         }
 
                         HeadKeyPoint.Add(lineHead);
