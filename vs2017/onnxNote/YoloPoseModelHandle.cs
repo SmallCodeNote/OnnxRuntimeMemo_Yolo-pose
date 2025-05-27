@@ -37,8 +37,8 @@ namespace YoloPoseOnnxHandle
                     if (deviceID >= 0) { sessionOptions.AppendExecutionProvider_DML(deviceID); }
                     else { sessionOptions.AppendExecutionProvider_CPU(); }
 
-                    sessionOptions.ExecutionMode = ExecutionMode.ORT_PARALLEL; // 並列実行モードの使用
-                    sessionOptions.GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL; // グラフ最適化を有効化
+                    sessionOptions.ExecutionMode = ExecutionMode.ORT_PARALLEL; 
+                    sessionOptions.GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL; 
 
                 }
                 catch
@@ -80,7 +80,7 @@ namespace YoloPoseOnnxHandle
             return false;
         }
 
-        public List<PoseInfo> Predicte(Bitmap bitmap, float confidenceThreshold = -1.0f)
+        public List<PoseInfo> Predict(Bitmap bitmap, float confidenceThreshold = -1.0f)
         {
             if (confidenceThreshold < 0) { confidenceThreshold = ConfidenceThreshold; }
             ImageTensor = ConvertBitmapToTensor(bitmap);
@@ -93,7 +93,7 @@ namespace YoloPoseOnnxHandle
             return PoseInfoRead(output, confidenceThreshold);
         }
 
-        public List<PoseInfo> Predicte(Tensor<float> ImageTensor, float confidenceThreshold = -1.0f)
+        public List<PoseInfo> Predict(Tensor<float> ImageTensor, float confidenceThreshold = -1.0f)
         {
             var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor(SessionInputName, ImageTensor) };
             var results = session.Run(inputs);
@@ -104,7 +104,7 @@ namespace YoloPoseOnnxHandle
             return PoseInfoRead(output, confidenceThreshold);
         }
 
-        public float[] PredicteOutput(Tensor<float> ImageTensor, float confidenceThreshold = -1.0f)
+        public float[] PredictOutput(Tensor<float> ImageTensor, float confidenceThreshold = -1.0f)
         {
             var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor(SessionInputName, ImageTensor) };
             var results = session.Run(inputs);
@@ -220,8 +220,6 @@ namespace YoloPoseOnnxHandle
             return tensor;
         }
 
-
-
         public override string ToString()
         {
             return SessionInputName;
@@ -232,7 +230,6 @@ namespace YoloPoseOnnxHandle
             float[] outputArray = results.First().AsEnumerable<float>().ToArray();
             return PoseInfoRead(outputArray);
         }
-
 
         public List<PoseInfo> PoseInfoRead(float[] outputArray, float confidenceThreshold = -1.0f)
         {
@@ -329,7 +326,6 @@ namespace YoloPoseOnnxHandle
         public float Confidence;
         private int stride = 8400;
 
-
         public Bbox(float[] outputArray, int startIndex)
         {
             this.Center_x = outputArray[startIndex + stride * 0];
@@ -392,7 +388,6 @@ namespace YoloPoseOnnxHandle
 
             return intersectionArea / unionArea;
         }
-
 
         public override string ToString()
         {

@@ -156,7 +156,7 @@ namespace onnxNote
                     if (!capture.Read(frame) || frame.Empty()) return;
 
                     Bitmap bitmap = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(frame);
-                    List<PoseInfo> poseInfos = yoloPoseModelHandle.Predicte(bitmap);
+                    List<PoseInfo> poseInfos = yoloPoseModelHandle.Predict(bitmap);
                     drawPose(bitmap, poseInfos);
                     pictureBoxUpdate(pictureBox, bitmap);
 
@@ -768,6 +768,8 @@ namespace onnxNote
             bool isFirst = true;
 
             PoseValue.Add("frame,Head.X,Head.Y,Head.conf,"
+                  + "WristLeft.X,WristLeft.Y,WristLeft.conf,"
+                  + "WristRight.X,WristRight.Y,WristRight.conf,"
                   + "ElbowLeftAngle,ElbowLeftLength,WristLeftLength,ElbowRightAngle,ElbowRightLength,WristRightLength,"
                   + "KneeLeftAngle,KneeLeftLength,AnkleLeftLength,KneeRightAngle,KneeRightLength,AnkleRightLength,"
                   + "EyeWidth,EarWidth,ShoulderWidth,HipWidth,BodyLength");
@@ -814,6 +816,8 @@ namespace onnxNote
                             lineAnkle += $",{pose.KeyPoints.Ankle()}";
 
                             linePose += $",{pose.KeyPoints.Head()}";
+                            linePose += $",{pose.KeyPoints.WristLeft}";
+                            linePose += $",{pose.KeyPoints.WristRight}";
                             linePose += $",{pose.KeyPoints.ElbowLeftAngle:0},{pose.KeyPoints.ElbowLeftLength:0},{pose.KeyPoints.WristLeftLength:0}";
                             linePose += $",{pose.KeyPoints.ElbowRightAngle:0},{pose.KeyPoints.ElbowRightLength:0},{pose.KeyPoints.WristRightLength:0}";
                             linePose += $",{pose.KeyPoints.KneeLeftAngle:0},{pose.KeyPoints.KneeLeftLength:0},{pose.KeyPoints.AnkleLeftLength:0}";
