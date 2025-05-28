@@ -32,7 +32,17 @@
             this.tabControl1 = new System.Windows.Forms.TabControl();
             this.tabPage_YOLOPOSE = new System.Windows.Forms.TabPage();
             this.panel_Main = new System.Windows.Forms.Panel();
+            this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.pictureBox = new System.Windows.Forms.PictureBox();
+            this.panel2 = new System.Windows.Forms.Panel();
+            this.button_UnCheck = new System.Windows.Forms.Button();
+            this.button_Check = new System.Windows.Forms.Button();
+            this.dataGridView_PoseLines = new System.Windows.Forms.DataGridView();
+            this.Column_Checked = new System.Windows.Forms.DataGridViewCheckBoxColumn();
+            this.Column_Frame = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Column_FrameContents = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.button_LoadPoseInfo = new System.Windows.Forms.Button();
+            this.button_SaveFrameChecked = new System.Windows.Forms.Button();
             this.panel_YOLOPOSE_BOTTOM = new System.Windows.Forms.Panel();
             this.panel1 = new System.Windows.Forms.Panel();
             this.trackBar_Conf = new System.Windows.Forms.TrackBar();
@@ -61,7 +71,13 @@
             this.tabControl1.SuspendLayout();
             this.tabPage_YOLOPOSE.SuspendLayout();
             this.panel_Main.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
+            this.splitContainer1.Panel1.SuspendLayout();
+            this.splitContainer1.Panel2.SuspendLayout();
+            this.splitContainer1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox)).BeginInit();
+            this.panel2.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridView_PoseLines)).BeginInit();
             this.panel_YOLOPOSE_BOTTOM.SuspendLayout();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar_Conf)).BeginInit();
@@ -78,7 +94,7 @@
             this.tabControl1.Location = new System.Drawing.Point(0, 0);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(790, 810);
+            this.tabControl1.Size = new System.Drawing.Size(938, 810);
             this.tabControl1.TabIndex = 0;
             // 
             // tabPage_YOLOPOSE
@@ -90,7 +106,7 @@
             this.tabPage_YOLOPOSE.Location = new System.Drawing.Point(4, 22);
             this.tabPage_YOLOPOSE.Name = "tabPage_YOLOPOSE";
             this.tabPage_YOLOPOSE.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage_YOLOPOSE.Size = new System.Drawing.Size(782, 784);
+            this.tabPage_YOLOPOSE.Size = new System.Drawing.Size(930, 784);
             this.tabPage_YOLOPOSE.TabIndex = 0;
             this.tabPage_YOLOPOSE.Text = "YOLOPOSE";
             this.tabPage_YOLOPOSE.UseVisualStyleBackColor = true;
@@ -98,23 +114,135 @@
             // panel_Main
             // 
             this.panel_Main.AutoScroll = true;
-            this.panel_Main.Controls.Add(this.pictureBox);
+            this.panel_Main.Controls.Add(this.splitContainer1);
             this.panel_Main.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel_Main.Location = new System.Drawing.Point(3, 39);
             this.panel_Main.Name = "panel_Main";
-            this.panel_Main.Size = new System.Drawing.Size(776, 667);
+            this.panel_Main.Size = new System.Drawing.Size(924, 667);
             this.panel_Main.TabIndex = 3;
             this.panel_Main.Resize += new System.EventHandler(this.panel_Main_Resize);
             // 
+            // splitContainer1
+            // 
+            this.splitContainer1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.splitContainer1.FixedPanel = System.Windows.Forms.FixedPanel.Panel2;
+            this.splitContainer1.Location = new System.Drawing.Point(0, 0);
+            this.splitContainer1.Name = "splitContainer1";
+            // 
+            // splitContainer1.Panel1
+            // 
+            this.splitContainer1.Panel1.AutoScroll = true;
+            this.splitContainer1.Panel1.Controls.Add(this.pictureBox);
+            // 
+            // splitContainer1.Panel2
+            // 
+            this.splitContainer1.Panel2.Controls.Add(this.panel2);
+            this.splitContainer1.Panel2.Controls.Add(this.dataGridView_PoseLines);
+            this.splitContainer1.Panel2.Controls.Add(this.button_LoadPoseInfo);
+            this.splitContainer1.Panel2.Controls.Add(this.button_SaveFrameChecked);
+            this.splitContainer1.Size = new System.Drawing.Size(924, 667);
+            this.splitContainer1.SplitterDistance = 728;
+            this.splitContainer1.TabIndex = 1;
+            // 
             // pictureBox
             // 
-            this.pictureBox.Location = new System.Drawing.Point(54, 140);
+            this.pictureBox.Location = new System.Drawing.Point(38, 151);
             this.pictureBox.Name = "pictureBox";
             this.pictureBox.Size = new System.Drawing.Size(640, 360);
             this.pictureBox.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
             this.pictureBox.TabIndex = 0;
             this.pictureBox.TabStop = false;
             this.pictureBox.Click += new System.EventHandler(this.pictureBox_Click);
+            // 
+            // panel2
+            // 
+            this.panel2.Controls.Add(this.button_UnCheck);
+            this.panel2.Controls.Add(this.button_Check);
+            this.panel2.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.panel2.Location = new System.Drawing.Point(0, 632);
+            this.panel2.Name = "panel2";
+            this.panel2.Size = new System.Drawing.Size(192, 35);
+            this.panel2.TabIndex = 3;
+            // 
+            // button_UnCheck
+            // 
+            this.button_UnCheck.Dock = System.Windows.Forms.DockStyle.Left;
+            this.button_UnCheck.Font = new System.Drawing.Font("MS UI Gothic", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this.button_UnCheck.Location = new System.Drawing.Point(62, 0);
+            this.button_UnCheck.Name = "button_UnCheck";
+            this.button_UnCheck.Size = new System.Drawing.Size(65, 35);
+            this.button_UnCheck.TabIndex = 1;
+            this.button_UnCheck.Text = "👉☐";
+            this.button_UnCheck.UseVisualStyleBackColor = true;
+            this.button_UnCheck.Click += new System.EventHandler(this.button_UnCheck_Click);
+            // 
+            // button_Check
+            // 
+            this.button_Check.Dock = System.Windows.Forms.DockStyle.Left;
+            this.button_Check.Font = new System.Drawing.Font("MS UI Gothic", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this.button_Check.Location = new System.Drawing.Point(0, 0);
+            this.button_Check.Margin = new System.Windows.Forms.Padding(0);
+            this.button_Check.Name = "button_Check";
+            this.button_Check.Size = new System.Drawing.Size(62, 35);
+            this.button_Check.TabIndex = 0;
+            this.button_Check.Text = "👉☑";
+            this.button_Check.UseVisualStyleBackColor = true;
+            this.button_Check.Click += new System.EventHandler(this.button_Check_Click);
+            // 
+            // dataGridView_PoseLines
+            // 
+            this.dataGridView_PoseLines.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dataGridView_PoseLines.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.Column_Checked,
+            this.Column_Frame,
+            this.Column_FrameContents});
+            this.dataGridView_PoseLines.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.dataGridView_PoseLines.Location = new System.Drawing.Point(0, 46);
+            this.dataGridView_PoseLines.Name = "dataGridView_PoseLines";
+            this.dataGridView_PoseLines.RowTemplate.Height = 21;
+            this.dataGridView_PoseLines.Size = new System.Drawing.Size(192, 621);
+            this.dataGridView_PoseLines.TabIndex = 0;
+            this.dataGridView_PoseLines.CurrentCellChanged += new System.EventHandler(this.dataGridView_PoseLines_CurrentCellChanged);
+            this.dataGridView_PoseLines.RowEnter += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView_PoseLines_RowEnter);
+            // 
+            // Column_Checked
+            // 
+            this.Column_Checked.HeaderText = "";
+            this.Column_Checked.Name = "Column_Checked";
+            this.Column_Checked.Width = 24;
+            // 
+            // Column_Frame
+            // 
+            this.Column_Frame.HeaderText = "Frame";
+            this.Column_Frame.Name = "Column_Frame";
+            // 
+            // Column_FrameContents
+            // 
+            this.Column_FrameContents.HeaderText = "FrameContents";
+            this.Column_FrameContents.Name = "Column_FrameContents";
+            this.Column_FrameContents.Visible = false;
+            // 
+            // button_LoadPoseInfo
+            // 
+            this.button_LoadPoseInfo.Dock = System.Windows.Forms.DockStyle.Top;
+            this.button_LoadPoseInfo.Location = new System.Drawing.Point(0, 23);
+            this.button_LoadPoseInfo.Name = "button_LoadPoseInfo";
+            this.button_LoadPoseInfo.Size = new System.Drawing.Size(192, 23);
+            this.button_LoadPoseInfo.TabIndex = 2;
+            this.button_LoadPoseInfo.Text = "LoadPoseInfo";
+            this.button_LoadPoseInfo.UseVisualStyleBackColor = true;
+            this.button_LoadPoseInfo.Click += new System.EventHandler(this.button_LoadPoseInfo_Click);
+            // 
+            // button_SaveFrameChecked
+            // 
+            this.button_SaveFrameChecked.Dock = System.Windows.Forms.DockStyle.Top;
+            this.button_SaveFrameChecked.Location = new System.Drawing.Point(0, 0);
+            this.button_SaveFrameChecked.Name = "button_SaveFrameChecked";
+            this.button_SaveFrameChecked.Size = new System.Drawing.Size(192, 23);
+            this.button_SaveFrameChecked.TabIndex = 1;
+            this.button_SaveFrameChecked.Text = "SaveFrameChecked";
+            this.button_SaveFrameChecked.UseVisualStyleBackColor = true;
+            this.button_SaveFrameChecked.Click += new System.EventHandler(this.button_SaveFrameChecked_Click);
             // 
             // panel_YOLOPOSE_BOTTOM
             // 
@@ -123,7 +251,7 @@
             this.panel_YOLOPOSE_BOTTOM.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.panel_YOLOPOSE_BOTTOM.Location = new System.Drawing.Point(3, 706);
             this.panel_YOLOPOSE_BOTTOM.Name = "panel_YOLOPOSE_BOTTOM";
-            this.panel_YOLOPOSE_BOTTOM.Size = new System.Drawing.Size(776, 75);
+            this.panel_YOLOPOSE_BOTTOM.Size = new System.Drawing.Size(924, 75);
             this.panel_YOLOPOSE_BOTTOM.TabIndex = 2;
             // 
             // panel1
@@ -143,7 +271,7 @@
             this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel1.Location = new System.Drawing.Point(0, 45);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(776, 30);
+            this.panel1.Size = new System.Drawing.Size(924, 30);
             this.panel1.TabIndex = 1;
             // 
             // trackBar_Conf
@@ -152,7 +280,7 @@
             this.trackBar_Conf.Location = new System.Drawing.Point(427, 0);
             this.trackBar_Conf.Maximum = 100;
             this.trackBar_Conf.Name = "trackBar_Conf";
-            this.trackBar_Conf.Size = new System.Drawing.Size(193, 30);
+            this.trackBar_Conf.Size = new System.Drawing.Size(341, 30);
             this.trackBar_Conf.TabIndex = 9;
             this.trackBar_Conf.TickFrequency = 10;
             this.trackBar_Conf.Value = 80;
@@ -162,7 +290,7 @@
             // label_ConfThreshold
             // 
             this.label_ConfThreshold.Dock = System.Windows.Forms.DockStyle.Right;
-            this.label_ConfThreshold.Location = new System.Drawing.Point(620, 0);
+            this.label_ConfThreshold.Location = new System.Drawing.Point(768, 0);
             this.label_ConfThreshold.Name = "label_ConfThreshold";
             this.label_ConfThreshold.Size = new System.Drawing.Size(30, 30);
             this.label_ConfThreshold.TabIndex = 10;
@@ -172,7 +300,7 @@
             // button_Save
             // 
             this.button_Save.Dock = System.Windows.Forms.DockStyle.Right;
-            this.button_Save.Location = new System.Drawing.Point(650, 0);
+            this.button_Save.Location = new System.Drawing.Point(798, 0);
             this.button_Save.Name = "button_Save";
             this.button_Save.Size = new System.Drawing.Size(63, 30);
             this.button_Save.TabIndex = 8;
@@ -259,7 +387,7 @@
             // button_OpenMovieFile
             // 
             this.button_OpenMovieFile.Dock = System.Windows.Forms.DockStyle.Right;
-            this.button_OpenMovieFile.Location = new System.Drawing.Point(713, 0);
+            this.button_OpenMovieFile.Location = new System.Drawing.Point(861, 0);
             this.button_OpenMovieFile.Name = "button_OpenMovieFile";
             this.button_OpenMovieFile.Size = new System.Drawing.Size(63, 30);
             this.button_OpenMovieFile.TabIndex = 0;
@@ -272,7 +400,7 @@
             this.trackBar_frameIndex.Dock = System.Windows.Forms.DockStyle.Top;
             this.trackBar_frameIndex.Location = new System.Drawing.Point(0, 0);
             this.trackBar_frameIndex.Name = "trackBar_frameIndex";
-            this.trackBar_frameIndex.Size = new System.Drawing.Size(776, 45);
+            this.trackBar_frameIndex.Size = new System.Drawing.Size(924, 45);
             this.trackBar_frameIndex.TabIndex = 0;
             this.trackBar_frameIndex.ValueChanged += new System.EventHandler(this.trackBar_frameIndex_ValueChanged);
             // 
@@ -283,7 +411,7 @@
             this.panel_YOLOPOSE_TOP.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel_YOLOPOSE_TOP.Location = new System.Drawing.Point(3, 15);
             this.panel_YOLOPOSE_TOP.Name = "panel_YOLOPOSE_TOP";
-            this.panel_YOLOPOSE_TOP.Size = new System.Drawing.Size(776, 24);
+            this.panel_YOLOPOSE_TOP.Size = new System.Drawing.Size(924, 24);
             this.panel_YOLOPOSE_TOP.TabIndex = 1;
             // 
             // textBox_modelFilePath
@@ -291,14 +419,14 @@
             this.textBox_modelFilePath.Dock = System.Windows.Forms.DockStyle.Fill;
             this.textBox_modelFilePath.Location = new System.Drawing.Point(0, 0);
             this.textBox_modelFilePath.Name = "textBox_modelFilePath";
-            this.textBox_modelFilePath.Size = new System.Drawing.Size(744, 19);
+            this.textBox_modelFilePath.Size = new System.Drawing.Size(892, 19);
             this.textBox_modelFilePath.TabIndex = 1;
             this.textBox_modelFilePath.TextChanged += new System.EventHandler(this.textBox_modelFilePath_TextChanged);
             // 
             // button_OpenModelFile
             // 
             this.button_OpenModelFile.Dock = System.Windows.Forms.DockStyle.Right;
-            this.button_OpenModelFile.Location = new System.Drawing.Point(744, 0);
+            this.button_OpenModelFile.Location = new System.Drawing.Point(892, 0);
             this.button_OpenModelFile.Name = "button_OpenModelFile";
             this.button_OpenModelFile.Size = new System.Drawing.Size(32, 24);
             this.button_OpenModelFile.TabIndex = 0;
@@ -326,7 +454,7 @@
             this.tabPage2.Location = new System.Drawing.Point(4, 22);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage2.Size = new System.Drawing.Size(782, 784);
+            this.tabPage2.Size = new System.Drawing.Size(930, 784);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "Setting";
             this.tabPage2.UseVisualStyleBackColor = true;
@@ -389,7 +517,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(790, 810);
+            this.ClientSize = new System.Drawing.Size(938, 810);
             this.Controls.Add(this.tabControl1);
             this.Name = "Form1";
             this.Text = "ONNX";
@@ -399,8 +527,14 @@
             this.tabPage_YOLOPOSE.ResumeLayout(false);
             this.tabPage_YOLOPOSE.PerformLayout();
             this.panel_Main.ResumeLayout(false);
-            this.panel_Main.PerformLayout();
+            this.splitContainer1.Panel1.ResumeLayout(false);
+            this.splitContainer1.Panel1.PerformLayout();
+            this.splitContainer1.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
+            this.splitContainer1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox)).EndInit();
+            this.panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridView_PoseLines)).EndInit();
             this.panel_YOLOPOSE_BOTTOM.ResumeLayout(false);
             this.panel_YOLOPOSE_BOTTOM.PerformLayout();
             this.panel1.ResumeLayout(false);
@@ -446,6 +580,16 @@
         private System.Windows.Forms.Timer timer1;
         private System.Windows.Forms.TextBox textBox_PredictBatchSize;
         private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.SplitContainer splitContainer1;
+        private System.Windows.Forms.DataGridView dataGridView_PoseLines;
+        private System.Windows.Forms.DataGridViewCheckBoxColumn Column_Checked;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Column_Frame;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Column_FrameContents;
+        private System.Windows.Forms.Button button_SaveFrameChecked;
+        private System.Windows.Forms.Button button_LoadPoseInfo;
+        private System.Windows.Forms.Panel panel2;
+        private System.Windows.Forms.Button button_UnCheck;
+        private System.Windows.Forms.Button button_Check;
     }
 }
 

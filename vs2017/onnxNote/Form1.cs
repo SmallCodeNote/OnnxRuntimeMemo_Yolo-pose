@@ -767,9 +767,9 @@ namespace onnxNote
 
             bool isFirst = true;
 
-            PoseValue.Add("frame,Head.X,Head.Y,Head.conf,"
-                  + "WristLeft.X,WristLeft.Y,WristLeft.conf,"
-                  + "WristRight.X,WristRight.Y,WristRight.conf,"
+            PoseValue.Add("frame,Head.X,Head.Y,"
+                  + "WristLeft.X,WristLeft.Y,"
+                  + "WristRight.X,WristRight.Y,"
                   + "ElbowLeftAngle,ElbowLeftLength,WristLeftLength,ElbowRightAngle,ElbowRightLength,WristRightLength,"
                   + "KneeLeftAngle,KneeLeftLength,AnkleLeftLength,KneeRightAngle,KneeRightLength,AnkleRightLength,"
                   + "EyeWidth,EarWidth,ShoulderWidth,HipWidth,BodyLength");
@@ -800,7 +800,7 @@ namespace onnxNote
                         lineKnee = posFrame;
                         lineAnkle = posFrame;
 
-                        linePose = posFrame;
+                        dataGridView_PoseLines.Rows.Clear();
 
                         foreach (var pose in frameInfo.PoseInfos)
                         {
@@ -815,15 +815,20 @@ namespace onnxNote
                             lineKnee += $",{pose.KeyPoints.Knee()}";
                             lineAnkle += $",{pose.KeyPoints.Ankle()}";
 
-                            linePose += $",{pose.KeyPoints.Head()}";
-                            linePose += $",{pose.KeyPoints.WristLeft}";
-                            linePose += $",{pose.KeyPoints.WristRight}";
+                            linePose = posFrame;
+
+                            linePose += $",{pose.KeyPoints.Head().X},{pose.KeyPoints.Head().Y}";
+                            linePose += $",{pose.KeyPoints.WristLeft.X},{pose.KeyPoints.WristLeft.Y}";
+                            linePose += $",{pose.KeyPoints.WristRight.X},{pose.KeyPoints.WristRight.Y}";
                             linePose += $",{pose.KeyPoints.ElbowLeftAngle:0},{pose.KeyPoints.ElbowLeftLength:0},{pose.KeyPoints.WristLeftLength:0}";
                             linePose += $",{pose.KeyPoints.ElbowRightAngle:0},{pose.KeyPoints.ElbowRightLength:0},{pose.KeyPoints.WristRightLength:0}";
                             linePose += $",{pose.KeyPoints.KneeLeftAngle:0},{pose.KeyPoints.KneeLeftLength:0},{pose.KeyPoints.AnkleLeftLength:0}";
                             linePose += $",{pose.KeyPoints.KneeRightAngle:0},{pose.KeyPoints.KneeRightLength:0},{pose.KeyPoints.AnkleRightLength:0}";
                             linePose += $",{pose.KeyPoints.EyeWidth:0},{pose.KeyPoints.EarWidth:0},{pose.KeyPoints.ShoulderWidth:0},{pose.KeyPoints.HipWidth:0}";
                             linePose += $",{pose.KeyPoints.BodyLength:0}";
+                            PoseValue.Add(linePose);
+
+                            dataGridView_PoseLines.Rows.Add(new object[] { false, posFrame.ToString(), linePose });
                         }
 
                         HeadKeyPoint.Add(lineHead);
@@ -837,7 +842,7 @@ namespace onnxNote
                         KneeKeyPoint.Add(lineKnee);
                         AnkleKeyPoint.Add(lineAnkle);
 
-                        PoseValue.Add(linePose);
+
                     }
                     else
                     {
@@ -1045,6 +1050,97 @@ namespace onnxNote
             if (frameBitmapQueue != null && frameTensorQueue != null && framePoseInfoQueue != null && frameReportQueue != null)
             {
                 Console.WriteLine($"\t{(DateTime.Now - taskStartTime).TotalSeconds:0}\tB{frameBitmapQueue.Count}\tT{frameTensorQueue.Count}\tP{framePoseInfoQueue.Count}\tR{frameReportQueue.Count}");
+            }
+        }
+
+        private void button_LoadPoseInfo_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog ofd = new OpenFileDialog();
+            ofd.Filter = "CSV|*csv";
+            if (ofd.ShowDialog() != DialogResult.OK) return;
+
+            string[] Lines = File.ReadAllLines(ofd.FileName);
+
+            dataGridView_PoseLines.Rows.Clear();
+
+            foreach (var Line in Lines)
+            {
+                if (int.TryParse(Line.Split(',')[0], out int frameindex))
+                {
+                    dataGridView_PoseLines.Rows.Add(new object[] { true, Line.Split(',')[0], Line });
+                }
+            }
+        }
+
+        private void dataGridView_PoseLines_RowEnter(object sender, DataGridViewCellEventArgs e)
+        {
+            if (capture != null)
+            {
+                if (dataGridView_PoseLines.SelectedRows.Count < 1) return;
+                string cellvalue = dataGridView_PoseLines.SelectedRows[0].Cells[1].Value.ToString();
+                trackBar_frameIndex.Value = int.Parse(cellvalue);
+                /*
+                using (Mat frame = new Mat())
+                {
+                    capture.PosFrames = trackBar_frameIndex.Value;
+                    if (!capture.Read(frame) || frame.Empty()) return;
+
+                    Bitmap bitmap = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(frame);
+                    List<PoseInfo> poseInfos = yoloPoseModelHandle.Predict(bitmap);
+                    drawPose(bitmap, poseInfos);
+                    pictureBoxUpdate(pictureBox, bitmap);
+
+                }
+
+                label_FrameCount.Text = trackBar_frameIndex.Value.ToString() + " / " + capture.FrameCount.ToString();
+            */
+            }
+        }
+
+        private void button_SaveFrameChecked_Click(object sender, EventArgs e)
+        {
+            SaveFileDialog sfd = new SaveFileDialog();
+            if (sfd.ShowDialog() != DialogResult.OK) return;
+            List<string> Lines = new List<string>();
+
+            foreach (DataGridViewRow row in dataGridView_PoseLines.Rows)
+            {
+                if (row.Cells.Count <= 2) continue;
+                if((bool)row.Cells[0].Value) Lines.Add(row.Cells[2].Value.ToString());
+            }
+
+            File.WriteAllLines(sfd.FileName, Lines);
+
+        }
+
+        private void dataGridView_PoseLines_CurrentCellChanged(object sender, EventArgs e)
+        {
+            if (capture != null)
+            {
+                if (dataGridView_PoseLines.SelectedCells.Count < 1) return;
+                string cellvalue = dataGridView_PoseLines.Rows[ dataGridView_PoseLines.SelectedCells[0].RowIndex].Cells[1].Value.ToString();
+                trackBar_frameIndex.Value = int.Parse(cellvalue);
+               
+            }
+        }
+
+        private void button_Check_Click(object sender, EventArgs e)
+        {
+            foreach (DataGridViewRow row in dataGridView_PoseLines.SelectedRows)
+            {
+                if (row.Cells.Count < 3) continue;
+                row.Cells[0].Value = true;
+
+            }
+        }
+
+        private void button_UnCheck_Click(object sender, EventArgs e)
+        {
+            foreach (DataGridViewRow row in dataGridView_PoseLines.SelectedRows)
+            {
+                if (row.Cells.Count < 3) continue;
+                row.Cells[0].Value = false;
+
             }
         }
     }
