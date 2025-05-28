@@ -315,6 +315,25 @@ namespace YoloPoseOnnxHandle
             Bbox = new Bbox(outputArray, startIndex);
             KeyPoints = new PoseKeyPoints(outputArray, startIndex);
         }
+
+        public string ToLineString()
+        {
+            string linePose = "";
+            linePose += $"{KeyPoints.Head().X:0},{KeyPoints.Head().Y:0}";
+            linePose += $",{KeyPoints.WristLeft.X:0},{KeyPoints.WristLeft.Y:0}";
+            linePose += $",{KeyPoints.WristRight.X:0},{KeyPoints.WristRight.Y:0}";
+            linePose += $",{KeyPoints.ElbowLeftAngle:0},{KeyPoints.ElbowLeftLength:0},{KeyPoints.WristLeftLength:0}";
+            linePose += $",{KeyPoints.ElbowRightAngle:0},{KeyPoints.ElbowRightLength:0},{KeyPoints.WristRightLength:0}";
+            linePose += $",{KeyPoints.KneeLeftAngle:0},{KeyPoints.KneeLeftLength:0},{KeyPoints.AnkleLeftLength:0}";
+            linePose += $",{KeyPoints.KneeRightAngle:0},{KeyPoints.KneeRightLength:0},{KeyPoints.AnkleRightLength:0}";
+            linePose += $",{KeyPoints.EyeWidth:0},{KeyPoints.EarWidth:0},{KeyPoints.ShoulderWidth:0},{KeyPoints.HipWidth:0}";
+            linePose += $",{KeyPoints.BodyLength:0}";
+
+            return linePose;
+        }
+
+
+
     }
 
     public class Bbox
