@@ -35,12 +35,14 @@
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.pictureBox = new System.Windows.Forms.PictureBox();
             this.panel2 = new System.Windows.Forms.Panel();
+            this.button_CopyFromTop = new System.Windows.Forms.Button();
             this.button_UnCheck = new System.Windows.Forms.Button();
             this.button_Check = new System.Windows.Forms.Button();
             this.dataGridView_PoseLines = new System.Windows.Forms.DataGridView();
             this.Column_Checked = new System.Windows.Forms.DataGridViewCheckBoxColumn();
             this.Column_Frame = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Column_FrameContents = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Column_Label = new System.Windows.Forms.DataGridViewComboBoxColumn();
             this.button_LoadPoseInfo = new System.Windows.Forms.Button();
             this.button_SaveFrameChecked = new System.Windows.Forms.Button();
             this.panel_YOLOPOSE_BOTTOM = new System.Windows.Forms.Panel();
@@ -62,9 +64,11 @@
             this.button_OpenModelFile = new System.Windows.Forms.Button();
             this.label_modelPath = new System.Windows.Forms.Label();
             this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.textBox_LabelList = new System.Windows.Forms.TextBox();
             this.textBox_PredictBatchSize = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
             this.comboBox_DeviceID = new System.Windows.Forms.ComboBox();
+            this.label3 = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
             this.backgroundWorker_posePredict = new System.ComponentModel.BackgroundWorker();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
@@ -110,6 +114,7 @@
             this.tabPage_YOLOPOSE.TabIndex = 0;
             this.tabPage_YOLOPOSE.Text = "YOLOPOSE";
             this.tabPage_YOLOPOSE.UseVisualStyleBackColor = true;
+            this.tabPage_YOLOPOSE.Enter += new System.EventHandler(this.tabPage_YOLOPOSE_Enter);
             // 
             // panel_Main
             // 
@@ -141,7 +146,7 @@
             this.splitContainer1.Panel2.Controls.Add(this.button_LoadPoseInfo);
             this.splitContainer1.Panel2.Controls.Add(this.button_SaveFrameChecked);
             this.splitContainer1.Size = new System.Drawing.Size(924, 667);
-            this.splitContainer1.SplitterDistance = 728;
+            this.splitContainer1.SplitterDistance = 707;
             this.splitContainer1.TabIndex = 1;
             // 
             // pictureBox
@@ -156,13 +161,26 @@
             // 
             // panel2
             // 
+            this.panel2.Controls.Add(this.button_CopyFromTop);
             this.panel2.Controls.Add(this.button_UnCheck);
             this.panel2.Controls.Add(this.button_Check);
             this.panel2.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.panel2.Location = new System.Drawing.Point(0, 632);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(192, 35);
+            this.panel2.Size = new System.Drawing.Size(213, 35);
             this.panel2.TabIndex = 3;
+            // 
+            // button_CopyFromTop
+            // 
+            this.button_CopyFromTop.Dock = System.Windows.Forms.DockStyle.Left;
+            this.button_CopyFromTop.Font = new System.Drawing.Font("MS UI Gothic", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this.button_CopyFromTop.Location = new System.Drawing.Point(127, 0);
+            this.button_CopyFromTop.Name = "button_CopyFromTop";
+            this.button_CopyFromTop.Size = new System.Drawing.Size(65, 35);
+            this.button_CopyFromTop.TabIndex = 2;
+            this.button_CopyFromTop.Text = "👉▶⬇";
+            this.button_CopyFromTop.UseVisualStyleBackColor = true;
+            this.button_CopyFromTop.Click += new System.EventHandler(this.button_CopyFromTop_Click);
             // 
             // button_UnCheck
             // 
@@ -195,13 +213,16 @@
             this.dataGridView_PoseLines.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.Column_Checked,
             this.Column_Frame,
-            this.Column_FrameContents});
+            this.Column_FrameContents,
+            this.Column_Label});
             this.dataGridView_PoseLines.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dataGridView_PoseLines.Location = new System.Drawing.Point(0, 46);
             this.dataGridView_PoseLines.Name = "dataGridView_PoseLines";
+            this.dataGridView_PoseLines.RowHeadersWidth = 26;
             this.dataGridView_PoseLines.RowTemplate.Height = 21;
-            this.dataGridView_PoseLines.Size = new System.Drawing.Size(192, 621);
+            this.dataGridView_PoseLines.Size = new System.Drawing.Size(213, 621);
             this.dataGridView_PoseLines.TabIndex = 0;
+            this.dataGridView_PoseLines.CellValidating += new System.Windows.Forms.DataGridViewCellValidatingEventHandler(this.dataGridView_PoseLines_CellValidating);
             this.dataGridView_PoseLines.CurrentCellChanged += new System.EventHandler(this.dataGridView_PoseLines_CurrentCellChanged);
             this.dataGridView_PoseLines.RowEnter += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView_PoseLines_RowEnter);
             // 
@@ -215,6 +236,7 @@
             // 
             this.Column_Frame.HeaderText = "Frame";
             this.Column_Frame.Name = "Column_Frame";
+            this.Column_Frame.Width = 60;
             // 
             // Column_FrameContents
             // 
@@ -222,12 +244,18 @@
             this.Column_FrameContents.Name = "Column_FrameContents";
             this.Column_FrameContents.Visible = false;
             // 
+            // Column_Label
+            // 
+            this.Column_Label.HeaderText = "Label";
+            this.Column_Label.Name = "Column_Label";
+            this.Column_Label.Width = 70;
+            // 
             // button_LoadPoseInfo
             // 
             this.button_LoadPoseInfo.Dock = System.Windows.Forms.DockStyle.Top;
             this.button_LoadPoseInfo.Location = new System.Drawing.Point(0, 23);
             this.button_LoadPoseInfo.Name = "button_LoadPoseInfo";
-            this.button_LoadPoseInfo.Size = new System.Drawing.Size(192, 23);
+            this.button_LoadPoseInfo.Size = new System.Drawing.Size(213, 23);
             this.button_LoadPoseInfo.TabIndex = 2;
             this.button_LoadPoseInfo.Text = "LoadPoseInfo";
             this.button_LoadPoseInfo.UseVisualStyleBackColor = true;
@@ -238,7 +266,7 @@
             this.button_SaveFrameChecked.Dock = System.Windows.Forms.DockStyle.Top;
             this.button_SaveFrameChecked.Location = new System.Drawing.Point(0, 0);
             this.button_SaveFrameChecked.Name = "button_SaveFrameChecked";
-            this.button_SaveFrameChecked.Size = new System.Drawing.Size(192, 23);
+            this.button_SaveFrameChecked.Size = new System.Drawing.Size(213, 23);
             this.button_SaveFrameChecked.TabIndex = 1;
             this.button_SaveFrameChecked.Text = "SaveFrameChecked";
             this.button_SaveFrameChecked.UseVisualStyleBackColor = true;
@@ -447,9 +475,11 @@
             // tabPage2
             // 
             this.tabPage2.AutoScroll = true;
+            this.tabPage2.Controls.Add(this.textBox_LabelList);
             this.tabPage2.Controls.Add(this.textBox_PredictBatchSize);
             this.tabPage2.Controls.Add(this.label2);
             this.tabPage2.Controls.Add(this.comboBox_DeviceID);
+            this.tabPage2.Controls.Add(this.label3);
             this.tabPage2.Controls.Add(this.label1);
             this.tabPage2.Location = new System.Drawing.Point(4, 22);
             this.tabPage2.Name = "tabPage2";
@@ -458,6 +488,16 @@
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "Setting";
             this.tabPage2.UseVisualStyleBackColor = true;
+            // 
+            // textBox_LabelList
+            // 
+            this.textBox_LabelList.Location = new System.Drawing.Point(147, 43);
+            this.textBox_LabelList.Multiline = true;
+            this.textBox_LabelList.Name = "textBox_LabelList";
+            this.textBox_LabelList.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this.textBox_LabelList.Size = new System.Drawing.Size(151, 226);
+            this.textBox_LabelList.TabIndex = 4;
+            this.textBox_LabelList.WordWrap = false;
             // 
             // textBox_PredictBatchSize
             // 
@@ -490,6 +530,15 @@
             this.comboBox_DeviceID.TabIndex = 1;
             this.comboBox_DeviceID.Text = "CPU";
             this.comboBox_DeviceID.SelectedIndexChanged += new System.EventHandler(this.comboBox_DeviceID_SelectedIndexChanged);
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(145, 28);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(51, 12);
+            this.label3.TabIndex = 0;
+            this.label3.Text = "LabelList";
             // 
             // label1
             // 
@@ -582,14 +631,18 @@
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.SplitContainer splitContainer1;
         private System.Windows.Forms.DataGridView dataGridView_PoseLines;
-        private System.Windows.Forms.DataGridViewCheckBoxColumn Column_Checked;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Column_Frame;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Column_FrameContents;
         private System.Windows.Forms.Button button_SaveFrameChecked;
         private System.Windows.Forms.Button button_LoadPoseInfo;
         private System.Windows.Forms.Panel panel2;
         private System.Windows.Forms.Button button_UnCheck;
         private System.Windows.Forms.Button button_Check;
+        private System.Windows.Forms.DataGridViewCheckBoxColumn Column_Checked;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Column_Frame;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Column_FrameContents;
+        private System.Windows.Forms.DataGridViewComboBoxColumn Column_Label;
+        private System.Windows.Forms.TextBox textBox_LabelList;
+        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.Button button_CopyFromTop;
     }
 }
 

@@ -152,7 +152,7 @@ namespace onnxNote
             {
                 using (Mat frame = new Mat())
                 {
-                    capture.PosFrames = trackBar_frameIndex.Value;
+                    capture.PosFrames = trackBar_frameIndex.Value > 0 ? trackBar_frameIndex.Value - 1 : 0;
                     if (!capture.Read(frame) || frame.Empty()) return;
 
                     Bitmap bitmap = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(frame);
@@ -227,6 +227,7 @@ namespace onnxNote
             if (button_Save.Text == "Save")
             {
                 OpenFileDialog ofd = new OpenFileDialog();
+                ofd.Multiselect = true;
                 ofd.Filter = "MP4|*.mp4";
 
                 if (ofd.ShowDialog() != DialogResult.OK) return;
@@ -238,6 +239,7 @@ namespace onnxNote
 
                 masterDirectoryPath = Path.Combine(Path.GetDirectoryName(sfd.FileName), Path.GetFileNameWithoutExtension(sfd.FileName));
 
+
                 string ext = Path.GetExtension(ofd.FileName);
 
                 if (ext == ".mp4")
@@ -245,6 +247,7 @@ namespace onnxNote
                     if (capture != null) capture.Dispose();
                     capture = new VideoCapture(ofd.FileName);
                     trackBar_frameIndex.Maximum = capture.FrameCount;
+                    trackBar_frameIndex.Value = 1;
                 }
                 else
                 {
@@ -261,6 +264,7 @@ namespace onnxNote
                 button_Save.Text = "Cancel";
                 timer1.Start();
                 backgroundWorker_posePredict.RunWorkerAsync();
+
             }
             else
             {
@@ -1062,18 +1066,30 @@ namespace onnxNote
 
         public void drawFocus(Graphics g)
         {
-            if (dataGridView_PoseLines.SelectedRows.Count < 1 || g == null) return;
+            if (g == null) return;
+
             try
             {
-                string[] poseLine = dataGridView_PoseLines.SelectedRows[0].Cells[2].Value.ToString().Split(',');
+                var row = dataGridView_PoseLines.SelectedRows.Count > 0
+                    ? dataGridView_PoseLines.SelectedRows[0]
+                    : dataGridView_PoseLines.SelectedCells.Count > 0
+                        ? dataGridView_PoseLines.Rows[dataGridView_PoseLines.SelectedCells[0].RowIndex]
+                        : null;
+
+                if (row == null) return;
+
+                string[] poseLine = row.Cells[2].Value?.ToString()?.Split(',') ?? Array.Empty<string>();
+                if (poseLine.Length <= 2) return;
+
                 int cx = (int)double.Parse(poseLine[1]);
                 int cy = (int)double.Parse(poseLine[2]);
-                int w = 10;
+                int r = 8;
 
-                g.FillEllipse(Brushes.Green, cx - w / 2, cy - w / 2, w, w);
+                g.FillEllipse(Brushes.LightGreen, cx - r, cy - r, r * 2, r * 2);
             }
             catch { }
         }
+
 
         private void trackBar_Conf_ValueChanged(object sender, EventArgs e)
         {
@@ -1127,12 +1143,23 @@ namespace onnxNote
             if (capture != null)
             {
                 if (dataGridView_PoseLines.SelectedRows.Count < 1) return;
-                string cellvalue = dataGridView_PoseLines.SelectedRows[0].Cells[1].Value.ToString();
 
-                int prevalue = trackBar_frameIndex.Value;
-                trackBar_frameIndex.Value = int.Parse(cellvalue);
+                object value = dataGridView_PoseLines.SelectedRows[0].Cells[1].Value;
+                if (value == null) return;
 
-                if (prevalue == trackBar_frameIndex.Value) trackBar_frameIndex_ValueChanged(null, null);
+                string cellvalue = value.ToString();
+
+                int newFrameIndex = int.Parse(cellvalue);
+
+                if (trackBar_frameIndex.Value != newFrameIndex)
+                {
+                    trackBar_frameIndex.Value = newFrameIndex;
+                }
+                else
+                {
+                    trackBar_frameIndex_ValueChanged(null, null);
+                }
+
             }
         }
 
@@ -1158,8 +1185,17 @@ namespace onnxNote
             {
                 if (dataGridView_PoseLines.SelectedCells.Count < 1) return;
                 string cellvalue = dataGridView_PoseLines.Rows[dataGridView_PoseLines.SelectedCells[0].RowIndex].Cells[1].Value.ToString();
-                trackBar_frameIndex.Value = int.Parse(cellvalue);
 
+                int newFrameIndex = int.Parse(cellvalue);
+
+                if (trackBar_frameIndex.Value != newFrameIndex)
+                {
+                    trackBar_frameIndex.Value = newFrameIndex;
+                }
+                else
+                {
+                    trackBar_frameIndex_ValueChanged(null, null);
+                }
             }
         }
 
@@ -1181,6 +1217,60 @@ namespace onnxNote
                 row.Cells[0].Value = false;
 
             }
+        }
+
+        private void dataGridView_PoseLines_CellValidating(object sender, DataGridViewCellValidatingEventArgs e)
+        {
+            if (dataGridView_PoseLines.Columns[e.ColumnIndex] is DataGridViewComboBoxColumn comboBoxColumn)
+            {
+                var comboBoxCell = dataGridView_PoseLines.Rows[e.RowIndex].Cells[e.ColumnIndex] as DataGridViewComboBoxCell;
+
+                if (comboBoxCell != null && !comboBoxColumn.Items.Contains(e.FormattedValue))
+                {
+                    comboBoxColumn.Items.Add(e.FormattedValue);
+                    comboBoxCell.Value = e.FormattedValue;
+
+                }
+            }
+        }
+
+        private void tabPage_YOLOPOSE_Enter(object sender, EventArgs e)
+        {
+            string[] items = textBox_LabelList.Text.Replace("\r\n", "\n").Trim('\n').Split('\n');
+            ((DataGridViewComboBoxColumn)dataGridView_PoseLines.Columns[3]).Items.Clear();
+            int labelIndex = 1;
+            foreach (var item in items)
+            {
+                ((DataGridViewComboBoxColumn)dataGridView_PoseLines.Columns[3]).Items.Add($"{labelIndex}_{item}");
+                labelIndex++;
+            }
+        }
+
+        private void button_CopyFromTop_Click(object sender, EventArgs e)
+        {
+            DataGridViewSelectedRowCollection rows = (DataGridViewSelectedRowCollection)dataGridView_PoseLines.SelectedRows;
+
+            if (rows.Count > 0)
+            {
+                bool topCheck = bool.Parse(rows[0].Cells[0].Value.ToString());
+                string topLabel = rows[0].Cells[3].Value.ToString();
+
+                List<string> rowLabels = new List<string>();
+                foreach (DataGridViewRow row in rows)
+                {
+                    rowLabels.Add(row.Cells[3].Value.ToString());
+
+                }
+
+
+                foreach (DataGridViewRow row in rows)
+                {
+                    row.Cells[0].Value = topCheck;
+                    row.Cells[3].Value = topLabel;
+                }
+
+            }
+
         }
     }
 
