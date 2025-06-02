@@ -828,17 +828,6 @@ namespace onnxNote
 
                             linePose = posFrame + "," + pose.ToLineString();
 
-                            /*
-                            linePose += $",{pose.KeyPoints.Head().X},{pose.KeyPoints.Head().Y}";
-                            linePose += $",{pose.KeyPoints.WristLeft.X},{pose.KeyPoints.WristLeft.Y}";
-                            linePose += $",{pose.KeyPoints.WristRight.X},{pose.KeyPoints.WristRight.Y}";
-                            linePose += $",{pose.KeyPoints.ElbowLeftAngle:0},{pose.KeyPoints.ElbowLeftLength:0},{pose.KeyPoints.WristLeftLength:0}";
-                            linePose += $",{pose.KeyPoints.ElbowRightAngle:0},{pose.KeyPoints.ElbowRightLength:0},{pose.KeyPoints.WristRightLength:0}";
-                            linePose += $",{pose.KeyPoints.KneeLeftAngle:0},{pose.KeyPoints.KneeLeftLength:0},{pose.KeyPoints.AnkleLeftLength:0}";
-                            linePose += $",{pose.KeyPoints.KneeRightAngle:0},{pose.KeyPoints.KneeRightLength:0},{pose.KeyPoints.AnkleRightLength:0}";
-                            linePose += $",{pose.KeyPoints.EyeWidth:0},{pose.KeyPoints.EarWidth:0},{pose.KeyPoints.ShoulderWidth:0},{pose.KeyPoints.HipWidth:0}";
-                            linePose += $",{pose.KeyPoints.BodyLength:0}";
-                            */
                             PoseValue.Add(linePose);
 
                             if (dataGridView_PoseLines.InvokeRequired)
@@ -858,7 +847,6 @@ namespace onnxNote
                         HipKeyPoint.Add(lineHip);
                         KneeKeyPoint.Add(lineKnee);
                         AnkleKeyPoint.Add(lineAnkle);
-
 
                     }
                     else
