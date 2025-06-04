@@ -316,9 +316,34 @@ namespace YoloPoseOnnxHandle
             KeyPoints = new PoseKeyPoints(outputArray, startIndex);
         }
 
+        static public string ToLineStringHeader()
+        {
+            string linePoseHeader = "";
+
+            linePoseHeader += "Head.X,Head.Y";
+            linePoseHeader += ",WristLeft.X,WristLeft.Y";
+            linePoseHeader += ",WristRight.X,WristRight.Y";
+            linePoseHeader += ",ElbowLeftAngle,ElbowLeftLength,WristLeftLength";
+            linePoseHeader += ",ElbowRightAngle,ElbowRightLength,WristRightLength";
+            linePoseHeader += ",KneeLeftAngle,KneeLeftLength,AnkleLeftLength";
+            linePoseHeader += ",KneeRightAngle,KneeRightLength,AnkleRightLength";
+            linePoseHeader += ",EyeWidth,EarWidth,ShoulderWidth,HipWidth";
+            linePoseHeader += ",TorsoLength";
+            linePoseHeader += ",HeadYawAngle";
+            linePoseHeader += ",TorsoSlope";
+            linePoseHeader += ",ShoulderSlope";
+            linePoseHeader += ",ThighLeftTorsoAngle";
+            linePoseHeader += ",ThighRightTorsoAngle";
+            linePoseHeader += ",ArmLeftTorsoAngle";
+            linePoseHeader += ",ArmRightTorsoAngle";
+
+            return linePoseHeader;
+        }
+
         public string ToLineString()
         {
             string linePose = "";
+
             linePose += $"{KeyPoints.Head().X:0},{KeyPoints.Head().Y:0}";
             linePose += $",{KeyPoints.WristLeft.X:0},{KeyPoints.WristLeft.Y:0}";
             linePose += $",{KeyPoints.WristRight.X:0},{KeyPoints.WristRight.Y:0}";
