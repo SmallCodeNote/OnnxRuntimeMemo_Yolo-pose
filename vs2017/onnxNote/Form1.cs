@@ -279,27 +279,51 @@ namespace onnxNote
 
         private void backgroundWorker_posePredict_DoWork(object sender, DoWorkEventArgs e)
         {
-            BackgroundWorker worker = (BackgroundWorker)sender;
-            if (!Directory.Exists(masterDirectoryPath)) { Directory.CreateDirectory(masterDirectoryPath); };
+            try
+            {
+                BackgroundWorker worker = (BackgroundWorker)sender;
+                if (!Directory.Exists(masterDirectoryPath)) { Directory.CreateDirectory(masterDirectoryPath); };
 
-            taskStartTime = DateTime.Now;
+                taskStartTime = DateTime.Now;
 
-            Task task_frameVideoReader = Task.Run(() => dequeue_frameVideoReader(worker, e));
-            Task task_frameBitmap = Task.Run(() => dequeue_frameBitmap());
-            Task task_frameTensor = Task.Run(() => dequeue_frameTensor());
-            Task task_framePoseInfo = Task.Run(() => dequeue_framePoseInfo());
-            Task task_frameReport = Task.Run(() => dequeue_frameReport());
-            Task task_frameVideoMat = Task.Run(() => dequeue_frameVideoMat());
-            Task task_frameShow = Task.Run(() => dequeue_frameShow());
+                frameBitmapQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize);
+                frameTensorQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize);
+                framePoseInfoQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize * 2);
+                frameReportQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize);
+                frameVideoMatQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize);
+                frameShowQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize);
+
+                Task task_frameVideoReader = Task.Run(() => dequeue_frameVideoReader(worker, e));
+                Task task_frameBitmap = Task.Run(() => dequeue_frameBitmap());
+                Task task_frameTensor = Task.Run(() => dequeue_frameTensor());
+                Task task_framePoseInfo = Task.Run(() => dequeue_framePoseInfo());
+                Task task_frameReport = Task.Run(() => dequeue_frameReport());
+                Task task_frameVideoMat = Task.Run(() => dequeue_frameVideoMat());
+                Task task_frameShow = Task.Run(() => dequeue_frameShow());
 
 
-            task_frameVideoReader.Wait();
-            task_frameBitmap.Wait();
-            task_frameTensor.Wait();
-            task_framePoseInfo.Wait();
-            task_frameReport.Wait();
-            task_frameVideoMat.Wait();
-            task_frameShow.Wait();
+                task_frameVideoReader.Wait();
+                task_frameBitmap.Wait();
+                task_frameTensor.Wait();
+                task_framePoseInfo.Wait();
+                task_frameReport.Wait();
+                task_frameVideoMat.Wait();
+                task_frameShow.Wait();
+
+                /*
+                frameBitmapQueue.Dispose();
+                frameTensorQueue.Dispose();
+                framePoseInfoQueue.Dispose();
+                frameReportQueue.Dispose();
+                frameVideoMatQueue.Dispose();
+                frameShowQueue.Dispose();
+            */
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ERROR:{System.Reflection.MethodBase.GetCurrentMethod().Name} {ex.Message} {ex.StackTrace}");
+
+            }
         }
 
         private void backgroundWorker_posePredict_ProgressChanged(object sender, ProgressChangedEventArgs e)
@@ -325,7 +349,7 @@ namespace onnxNote
                 int maxIndex = int.MinValue;
                 Console.WriteLine("Start:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
 
-                frameBitmapQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize);
+                //frameBitmapQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize);
                 List<frameDataSet> frameBitmapList = new List<frameDataSet>();
 
                 string posFrame = "";
@@ -379,7 +403,7 @@ namespace onnxNote
         }
 
         double minIndex_dequeue_frameBitmap = double.MaxValue;
-        BlockingCollection<frameDataSet> frameTensorQueue = new BlockingCollection<frameDataSet>();
+        BlockingCollection<frameDataSet> frameTensorQueue;
 
 
         /// <summary>
@@ -392,7 +416,7 @@ namespace onnxNote
                 int maxIndex = int.MinValue;
                 bool isFirst = true;
 
-                frameTensorQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize);
+                //frameTensorQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize);
                 var frameBitmapQueueTemp = new BlockingCollection<frameDataSet[]>(256);
 
                 Task[] workers = new Task[8];
@@ -535,12 +559,12 @@ namespace onnxNote
             {
                 Console.WriteLine($"Start: { System.Reflection.MethodBase.GetCurrentMethod().Name} ");
                 int maxIndex = int.MinValue;
-                framePoseInfoQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize * 2);
+                //framePoseInfoQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize * 2);
 
                 List<frameDataSet> frameTensorList = new List<frameDataSet>();
                 Task predictBatchTask = null;
                 frameDataSet[] datasetArray;
-
+                while (frameTensorQueue == null) { Thread.Sleep(1); }
                 while (!frameTensorQueue.IsCompleted)
                 {
                     if (frameTensorQueue.TryTake(out frameDataSet frameInfo, 500))
@@ -648,9 +672,9 @@ namespace onnxNote
 
 
                 Console.WriteLine("Start:" + System.Reflection.MethodBase.GetCurrentMethod().Name);
-                frameReportQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize);
-                frameVideoMatQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize);
-                frameShowQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize);
+                //frameReportQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize);
+                //frameVideoMatQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize);
+                //frameShowQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize);
 
                 int targetFrameIndex = 1;
                 List<frameDataSet> ListBuff = new List<frameDataSet>();
@@ -752,7 +776,7 @@ namespace onnxNote
                 {
                     dataGridView_PoseLines.Invoke(new Action(() => dataGridView_PoseLines.Rows.Clear()));
                 }
-
+                while (frameReportQueue == null) { Thread.Sleep(1); }
                 while (!frameReportQueue.IsCompleted)
                 {
                     if (frameReportQueue != null && frameReportQueue.TryTake(out frameDataSet frameInfo))
