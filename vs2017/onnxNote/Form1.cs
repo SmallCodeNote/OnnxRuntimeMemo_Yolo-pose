@@ -352,7 +352,7 @@ namespace onnxNote
             try
             {
                 int maxIndex = int.MinValue;
-                List<frameDataSet> frameList = new List<frameDataSet>();
+                List<frameDataSet> frameList = new List<frameDataSet>(PredictTaskBatchSize);
 
                 int frameIndex = 0;
 
@@ -411,8 +411,9 @@ namespace onnxNote
         {
             try
             {
-                int workersCount = Environment.ProcessorCount / 2;
-                int tempQueueDatasetSize = PredictTaskBatchSize / workersCount;
+                int workersCount = Environment.ProcessorCount - 1;
+                workersCount = workersCount < 1 ? 1 : workersCount;
+                int frameListMasterSize = PredictTaskBatchSize / workersCount;
 
                 var frameBitmapQueueTemp = new BlockingCollection<List<frameDataSet>>(workersCount);
                 var frameNextIndexQueue = new ConcurrentQueue<int>();
@@ -425,7 +426,7 @@ namespace onnxNote
                     {
                         try
                         {
-                            List<frameDataSet> frameList = new List<frameDataSet>();
+                            List<frameDataSet> frameList = new List<frameDataSet>(frameListMasterSize);
 
                             foreach (var frameInfos in frameBitmapQueueTemp.GetConsumingEnumerable())
                             {
@@ -461,19 +462,19 @@ namespace onnxNote
                     });
                 }
 
-                List<frameDataSet> frameListMaster = new List<frameDataSet>();
+                List<frameDataSet> frameListMaster = new List<frameDataSet>(frameListMasterSize);
 
                 while (frameBitmapQueue.Count > 0 || !frameBitmapQueue.IsCompleted)
                 {
-                    if (frameBitmapQueue.TryTake(out frameDataSet frameInfo, 100))
+                    if (frameBitmapQueue.TryTake(out frameDataSet frameInfo, 10))
                     {
                         frameListMaster.Add(frameInfo);
 
-                        if (frameListMaster.Count >= tempQueueDatasetSize)
+                        if (frameListMaster.Count >= frameListMasterSize)
                         {
                             frameNextIndexQueue.Enqueue(frameListMaster[0].frameIndex);
                             frameBitmapQueueTemp.Add(frameListMaster);
-                            frameListMaster = new List<frameDataSet>();
+                            frameListMaster = new List<frameDataSet>(frameListMasterSize);
                         }
                     }
                 }
@@ -501,8 +502,10 @@ namespace onnxNote
         public unsafe Tensor<float> ConvertBitmapToTensor(Bitmap bitmap, int width = 640, int height = 640)
         {
             var tensor = new DenseTensor<float>(new[] { 1, 3, height, width });
+            var tensorSpan = tensor.Buffer.Span;
             int widthMax = Math.Min(bitmap.Width, width);
             int heightMax = Math.Min(bitmap.Height, height);
+            const float scale = 1.0f / 255.0f;
 
             BitmapData bitmapData = bitmap.LockBits(
                 new Rectangle(0, 0, bitmap.Width, bitmap.Height),
@@ -510,32 +513,28 @@ namespace onnxNote
                 PixelFormat.Format24bppRgb
             );
 
-            try
+            byte* ptr = (byte*)bitmapData.Scan0;
+            int stride = bitmapData.Stride;
+
+            for (int y = 0; y < heightMax; y++)
             {
-                byte* ptr = (byte*)bitmapData.Scan0;
+                byte* row = ptr + y * stride;
+                int indexBase = y * width;
+                int indexR = indexBase;
+                int indexG = indexBase + height * width;
+                int indexB = indexBase + height * 2 * width;
 
-                for (int y = 0; y < heightMax; y++)
+                for (int x = 0; x < widthMax; x++)
                 {
-                    byte* row = ptr + y * bitmapData.Stride;
+                    int pixelIndex = x * 3;
 
-                    for (int x = 0; x < widthMax; x++)
-                    {
-                        int pixelIndex = x * 3; // 24bpp
-                        tensor[0, 0, y, x] = row[pixelIndex + 2] / 255.0f; // R
-                        tensor[0, 1, y, x] = row[pixelIndex + 1] / 255.0f; // G
-                        tensor[0, 2, y, x] = row[pixelIndex] / 255.0f;     // B
-                    }
+                    tensorSpan[indexR++] = row[pixelIndex + 2] * scale; // R
+                    tensorSpan[indexG++] = row[pixelIndex + 1] * scale; // G
+                    tensorSpan[indexB++] = row[pixelIndex] * scale;     // B
                 }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"ERROR:{System.Reflection.MethodBase.GetCurrentMethod().Name} {ex.Message} {ex.StackTrace}");
-            }
-            finally
-            {
-                bitmap.UnlockBits(bitmapData);
-            }
 
+            bitmap.UnlockBits(bitmapData);
             return tensor;
         }
 
@@ -544,7 +543,7 @@ namespace onnxNote
             try
             {
                 int maxIndex = int.MinValue;
-                List<frameDataSet> frameList = new List<frameDataSet>();
+                List<frameDataSet> frameList = new List<frameDataSet>(PredictTaskBatchSize);
 
                 while (frameTensorQueue.Count > 0 || !frameTensorQueue.IsCompleted)
                 {
@@ -554,33 +553,30 @@ namespace onnxNote
 
                         if (frameList.Count >= PredictTaskBatchSize)
                         {
-                            Console.WriteLine($"  StartPredictTask {frameList[0].frameIndex} - {frameList[frameList.Count - 1].frameIndex }");
+                            Console.WriteLine($"  StartPredictTask {frameList[0].frameIndex} - {frameList[frameList.Count - 1].frameIndex}");
                             PredictBatch(frameList);
-                            frameList = new List<frameDataSet>();
+                            frameList.Clear();
                         }
                     }
                 }
 
-                if (frameList.Count >= 0)
+                if (frameList.Count > 0)
                 {
-                    Console.WriteLine($"  LastPredictTask {frameList[0].frameIndex} - {frameList[frameList.Count - 1].frameIndex }");
+                    Console.WriteLine($"  LastPredictTask {frameList[0].frameIndex} - {frameList[frameList.Count - 1].frameIndex}");
                     PredictBatch(frameList);
-                    frameList = new List<frameDataSet>();
+                    frameList.Clear();
                 }
 
                 framePoseInfoQueue.CompleteAdding();
-
-                Console.WriteLine($"Complete: {maxIndex} { System.Reflection.MethodBase.GetCurrentMethod().Name}");
+                Console.WriteLine($"Complete: {maxIndex} {System.Reflection.MethodBase.GetCurrentMethod().Name}");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"ERROR:{System.Reflection.MethodBase.GetCurrentMethod().Name} {ex.Message} {ex.StackTrace}");
-
             }
-
         }
-        
-        public void PredictBatch(List<frameDataSet> frameList)
+
+        public void PredictBatch(IReadOnlyList<frameDataSet> frameList)
         {
             try
             {
@@ -591,20 +587,20 @@ namespace onnxNote
                 {
                     frameList[i].results = yoloPoseModelHandle.PredicteResults(frameList[i].inputs);
                 }
-                Console.WriteLine($".....Complete: {frameList[0].frameIndex} - {frameList[frameList.Count - 1].frameIndex} { System.Reflection.MethodBase.GetCurrentMethod().Name}");
+
+                Console.WriteLine($".....Complete: {frameList[0].frameIndex} - {frameList[frameList.Count - 1].frameIndex} {System.Reflection.MethodBase.GetCurrentMethod().Name}");
 
                 framePoseInfoQueueEnqueue(frameList);
-
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"ERROR:{System.Reflection.MethodBase.GetCurrentMethod().Name} {ex.Message} {ex.StackTrace}");
-
             }
-            return;
         }
 
-        public void framePoseInfoQueueEnqueue(List<frameDataSet> frameList)
+
+
+        public void framePoseInfoQueueEnqueue(IReadOnlyList<frameDataSet> frameList)
         {
             try
             {
@@ -614,7 +610,6 @@ namespace onnxNote
                     framePoseInfoQueue.Add(frameInfo);
                 }
                 Console.WriteLine($"  Add+P comp {frameList[0].frameIndex} - {frameList[frameList.Count - 1].frameIndex}");
-                frameList.Clear();
             }
             catch (Exception ex)
             {
@@ -626,7 +621,7 @@ namespace onnxNote
         {
             try
             {
-                List<frameDataSet> frameList = new List<frameDataSet>();
+                List<frameDataSet> frameList = new List<frameDataSet>(PredictTaskBatchSize);
 
                 while (framePoseInfoQueue.Count > 0 || !framePoseInfoQueue.IsCompleted)
                 {
@@ -637,7 +632,7 @@ namespace onnxNote
                         if (frameList.Count >= PredictTaskBatchSize)
                         {
                             dequeue_framePoseInfo_addQueue(frameList);
-                            frameList = new List<frameDataSet>();
+                            frameList.Clear();
                         }
                     }
                 }
@@ -645,7 +640,7 @@ namespace onnxNote
                 if (frameList.Count > 0)
                 {
                     dequeue_framePoseInfo_addQueue(frameList);
-                    frameList = new List<frameDataSet>();
+                    frameList.Clear();
                 }
 
                 frameReportQueue.CompleteAdding();
@@ -661,7 +656,7 @@ namespace onnxNote
             }
         }
 
-        private void dequeue_framePoseInfo_addQueue(List<frameDataSet> frameList)
+        private void dequeue_framePoseInfo_addQueue(IReadOnlyList<frameDataSet> frameList)
         {
             Console.Write($"      Add+R start {frameList[0].frameIndex} + {frameList.Count}");
 
@@ -689,8 +684,6 @@ namespace onnxNote
             }
 
             Console.WriteLine($"  Add+R comp {frameList[0].frameIndex} - {frameList[frameList.Count - 1].frameIndex }");
-            frameList.Clear();
-
         }
 
         private void dequeue_frameReport()
@@ -909,7 +902,7 @@ namespace onnxNote
                         if (frameVideoMatQueue.TryTake(out frameDataSet frameInfo, 10))
                         {
                             frameIndex = frameInfo.frameIndex;
-                               video.Write(frameInfo.mat);
+                            video.Write(frameInfo.mat);
                             frameInfo.mat.Dispose();
                         }
                     }
