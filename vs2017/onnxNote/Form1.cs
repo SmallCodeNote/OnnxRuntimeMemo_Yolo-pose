@@ -318,14 +318,16 @@ namespace onnxNote
                 task_frameVideoMat.Wait();
                 task_frameShow.Wait();
 
-                /*
+                timer1.Stop();
+                timer1_Tick(null, null);
+
                 frameBitmapQueue.Dispose();
                 frameTensorQueue.Dispose();
                 framePoseInfoQueue.Dispose();
                 frameReportQueue.Dispose();
                 frameVideoMatQueue.Dispose();
                 frameShowQueue.Dispose();
-            */
+            
             }
             catch (Exception ex)
             {
@@ -342,8 +344,6 @@ namespace onnxNote
 
         private void backgroundWorker_posePredict_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            timer1.Stop();
-            timer1_Tick(null, null);
             button_Save.Text = "Save";
         }
 
