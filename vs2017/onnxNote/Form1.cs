@@ -1184,7 +1184,7 @@ namespace onnxNote
                 List<string> rowLabels = new List<string>();
                 foreach (DataGridViewRow row in rows)
                 {
-                    rowLabels.Add(row.Cells[3].Value.ToString());
+                    if(row.Cells[3].Value!=null) rowLabels.Add(row.Cells[3].Value.ToString());
 
                 }
 
