@@ -618,7 +618,6 @@ namespace YoloPoseOnnxHandle
         public float ArmLeftTorsoAngle { get { return KeyPointAngle(ShoulderLeft, confidenceLevel_Shoulder, ElbowLeft, confidenceLevel_Elbow, Shoulder(), confidenceLevel_Shoulder, Hip(), confidenceLevel_Hip); } }
         public float ArmRightTorsoAngle { get { return KeyPointAngle(ShoulderRight, confidenceLevel_Shoulder, ElbowRight, confidenceLevel_Elbow, Shoulder(), confidenceLevel_Shoulder, Hip(), confidenceLevel_Hip); } }
 
-
         public float WristLeftLength { get { return KeyPointLength(ElbowLeft, confidenceLevel_Elbow, WristLeft, confidenceLevel_Wrist); } }
         public float WristRightLength { get { return KeyPointLength(ElbowRight, confidenceLevel_Elbow, WristRight, confidenceLevel_Wrist); } }
         public float ElbowLeftLength { get { return KeyPointLength(ShoulderLeft, confidenceLevel_Shoulder, ElbowLeft, confidenceLevel_Elbow); } }
@@ -646,6 +645,8 @@ namespace YoloPoseOnnxHandle
                     return -1;
                 double ratio = (dRight - dLeft) / sum;
                 double angleRad = (float)Math.Asin(ratio);
+                if (double.IsNaN(angleRad)) return -1;
+
                 return (float)(angleRad * (180.0 / Math.PI));
             }
         }
