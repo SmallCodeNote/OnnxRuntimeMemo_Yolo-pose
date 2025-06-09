@@ -337,6 +337,8 @@ namespace YoloPoseOnnxHandle
             linePoseHeader += ",ArmLeftTorsoAngle";
             linePoseHeader += ",ArmRightTorsoAngle";
 
+            linePoseHeader += ",Label";
+
             return linePoseHeader;
         }
 
@@ -360,6 +362,8 @@ namespace YoloPoseOnnxHandle
             linePose += $",{KeyPoints.ThighRightTorsoAngle:0}";
             linePose += $",{KeyPoints.ArmLeftTorsoAngle:0}";
             linePose += $",{KeyPoints.ArmRightTorsoAngle:0}";
+
+            linePose += $",-1";
 
             return linePose;
         }

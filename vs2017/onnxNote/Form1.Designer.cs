@@ -64,6 +64,10 @@
             this.button_OpenModelFile = new System.Windows.Forms.Button();
             this.label_modelPath = new System.Windows.Forms.Label();
             this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.button_LoadWorkSetting = new System.Windows.Forms.Button();
+            this.button_SaveWorkSetting = new System.Windows.Forms.Button();
+            this.textBox_WorkTitle = new System.Windows.Forms.TextBox();
+            this.label4 = new System.Windows.Forms.Label();
             this.textBox_LabelList = new System.Windows.Forms.TextBox();
             this.textBox_PredictBatchSize = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
@@ -475,6 +479,10 @@
             // tabPage2
             // 
             this.tabPage2.AutoScroll = true;
+            this.tabPage2.Controls.Add(this.button_LoadWorkSetting);
+            this.tabPage2.Controls.Add(this.button_SaveWorkSetting);
+            this.tabPage2.Controls.Add(this.textBox_WorkTitle);
+            this.tabPage2.Controls.Add(this.label4);
             this.tabPage2.Controls.Add(this.textBox_LabelList);
             this.tabPage2.Controls.Add(this.textBox_PredictBatchSize);
             this.tabPage2.Controls.Add(this.label2);
@@ -489,9 +497,45 @@
             this.tabPage2.Text = "Setting";
             this.tabPage2.UseVisualStyleBackColor = true;
             // 
+            // button_LoadWorkSetting
+            // 
+            this.button_LoadWorkSetting.Location = new System.Drawing.Point(91, 52);
+            this.button_LoadWorkSetting.Name = "button_LoadWorkSetting";
+            this.button_LoadWorkSetting.Size = new System.Drawing.Size(75, 23);
+            this.button_LoadWorkSetting.TabIndex = 7;
+            this.button_LoadWorkSetting.Text = "Load";
+            this.button_LoadWorkSetting.UseVisualStyleBackColor = true;
+            this.button_LoadWorkSetting.Click += new System.EventHandler(this.button_LoadWorkSetting_Click);
+            // 
+            // button_SaveWorkSetting
+            // 
+            this.button_SaveWorkSetting.Location = new System.Drawing.Point(10, 52);
+            this.button_SaveWorkSetting.Name = "button_SaveWorkSetting";
+            this.button_SaveWorkSetting.Size = new System.Drawing.Size(75, 23);
+            this.button_SaveWorkSetting.TabIndex = 7;
+            this.button_SaveWorkSetting.Text = "Save";
+            this.button_SaveWorkSetting.UseVisualStyleBackColor = true;
+            this.button_SaveWorkSetting.Click += new System.EventHandler(this.button_SaveWorkSetting_Click);
+            // 
+            // textBox_WorkTitle
+            // 
+            this.textBox_WorkTitle.Location = new System.Drawing.Point(10, 27);
+            this.textBox_WorkTitle.Name = "textBox_WorkTitle";
+            this.textBox_WorkTitle.Size = new System.Drawing.Size(288, 19);
+            this.textBox_WorkTitle.TabIndex = 6;
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(8, 12);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(56, 12);
+            this.label4.TabIndex = 5;
+            this.label4.Text = "WorklTitle";
+            // 
             // textBox_LabelList
             // 
-            this.textBox_LabelList.Location = new System.Drawing.Point(147, 43);
+            this.textBox_LabelList.Location = new System.Drawing.Point(147, 119);
             this.textBox_LabelList.Multiline = true;
             this.textBox_LabelList.Name = "textBox_LabelList";
             this.textBox_LabelList.ScrollBars = System.Windows.Forms.ScrollBars.Both;
@@ -501,7 +545,7 @@
             // 
             // textBox_PredictBatchSize
             // 
-            this.textBox_PredictBatchSize.Location = new System.Drawing.Point(10, 112);
+            this.textBox_PredictBatchSize.Location = new System.Drawing.Point(10, 188);
             this.textBox_PredictBatchSize.Name = "textBox_PredictBatchSize";
             this.textBox_PredictBatchSize.Size = new System.Drawing.Size(100, 19);
             this.textBox_PredictBatchSize.TabIndex = 3;
@@ -511,7 +555,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(8, 97);
+            this.label2.Location = new System.Drawing.Point(8, 173);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(100, 12);
             this.label2.TabIndex = 2;
@@ -524,7 +568,7 @@
             "CPU",
             "GPU0",
             "GPU1"});
-            this.comboBox_DeviceID.Location = new System.Drawing.Point(8, 43);
+            this.comboBox_DeviceID.Location = new System.Drawing.Point(8, 119);
             this.comboBox_DeviceID.Name = "comboBox_DeviceID";
             this.comboBox_DeviceID.Size = new System.Drawing.Size(67, 20);
             this.comboBox_DeviceID.TabIndex = 1;
@@ -534,7 +578,7 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(145, 28);
+            this.label3.Location = new System.Drawing.Point(145, 104);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(51, 12);
             this.label3.TabIndex = 0;
@@ -543,7 +587,7 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(8, 28);
+            this.label1.Location = new System.Drawing.Point(8, 104);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(51, 12);
             this.label1.TabIndex = 0;
@@ -643,6 +687,10 @@
         private System.Windows.Forms.TextBox textBox_LabelList;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Button button_CopyFromTop;
+        private System.Windows.Forms.TextBox textBox_WorkTitle;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.Button button_LoadWorkSetting;
+        private System.Windows.Forms.Button button_SaveWorkSetting;
     }
 }
 

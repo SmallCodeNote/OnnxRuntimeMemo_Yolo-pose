@@ -237,21 +237,21 @@ namespace onnxNote
 
                 if (ofd.FileNames.Length == 1)
                 {
+
                     SaveFileDialog sfd = new SaveFileDialog();
                     sfd.FileName = Path.GetFileNameWithoutExtension(ofd.FileName);
                     sfd.Filter = "";
                     if (sfd.ShowDialog() != DialogResult.OK) return;
 
-                    capturePathList.Add(sfd.FileName);
-                    //Path.Combine(Path.GetDirectoryName(sfd.FileName), Path.GetFileNameWithoutExtension(sfd.FileName))
+                    masterDirectoryPath = Path.Combine(Path.GetDirectoryName(sfd.FileName), Path.GetFileNameWithoutExtension(sfd.FileName));
+
                 }
-                else
+
+                foreach (var filePath in ofd.FileNames)
                 {
-                    foreach (var filePath in ofd.FileNames)
-                    {
-                        capturePathList.Add(filePath);
-                    }
+                    capturePathList.Add(filePath);
                 }
+
 
 
                 if (!int.TryParse(textBox_PredictBatchSize.Text, out PredictTaskBatchSize))
@@ -290,7 +290,7 @@ namespace onnxNote
             {
                 foreach (string capturePath in capturePathList)
                 {
-                    Console.WriteLine($"{capturePath}");
+                    Console.WriteLine($"capturePath: {capturePath}");
 
                     ext = Path.GetExtension(capturePath);
 
@@ -298,10 +298,11 @@ namespace onnxNote
                     {
                         if (capture != null) capture.Dispose();
                         capture = new VideoCapture(capturePath);
-                        
+
                         if (this.InvokeRequired)
                         {
-                            this.Invoke((Action)(() => {
+                            this.Invoke((Action)(() =>
+                            {
                                 trackBar_frameIndex.Maximum = capture.FrameCount;
                                 trackBar_frameIndex.Value = 1;
                                 Console.WriteLine($"{trackBar_frameIndex.Maximum} {trackBar_frameIndex.Value}");
@@ -315,7 +316,8 @@ namespace onnxNote
 
                     if (capture == null) return;
 
-                    masterDirectoryPath = Path.Combine(Path.GetDirectoryName(capturePath), Path.GetFileNameWithoutExtension(capturePath));
+                    if (capturePathList.Count > 1) masterDirectoryPath = Path.Combine(Path.GetDirectoryName(capturePath), Path.GetFileNameWithoutExtension(capturePath));
+                    Console.WriteLine($"masterDirectoryPath: {masterDirectoryPath}");
 
                     BackgroundWorker worker = (BackgroundWorker)sender;
                     if (!Directory.Exists(masterDirectoryPath)) { Directory.CreateDirectory(masterDirectoryPath); };
@@ -529,10 +531,11 @@ namespace onnxNote
             }
         }
 
+
         public unsafe Tensor<float> ConvertBitmapToTensor(Bitmap bitmap, int width = 640, int height = 640)
         {
             var tensor = new DenseTensor<float>(new[] { 1, 3, height, width });
-            var tensorSpan = tensor.Buffer.Span;
+            float[] tensorArray = tensor.Buffer.ToArray();
             int widthMax = Math.Min(bitmap.Width, width);
             int heightMax = Math.Min(bitmap.Height, height);
             const float scale = 1.0f / 255.0f;
@@ -546,7 +549,7 @@ namespace onnxNote
             byte* ptr = (byte*)bitmapData.Scan0;
             int stride = bitmapData.Stride;
 
-            for (int y = 0; y < heightMax; y++)
+            Parallel.For(0, heightMax, y =>
             {
                 byte* row = ptr + y * stride;
                 int indexBase = y * width;
@@ -558,15 +561,18 @@ namespace onnxNote
                 {
                     int pixelIndex = x * 3;
 
-                    tensorSpan[indexR++] = row[pixelIndex + 2] * scale; // R
-                    tensorSpan[indexG++] = row[pixelIndex + 1] * scale; // G
-                    tensorSpan[indexB++] = row[pixelIndex] * scale;     // B
+                    tensorArray[indexR++] = row[pixelIndex + 2] * scale; // R
+                    tensorArray[indexG++] = row[pixelIndex + 1] * scale; // G
+                    tensorArray[indexB++] = row[pixelIndex] * scale;     // B
                 }
-            }
+            });
 
             bitmap.UnlockBits(bitmapData);
-            return tensor;
+
+            var resultTensor = new DenseTensor<float>(tensorArray, new[] { 1, 3, height, width });
+            return resultTensor;
         }
+
 
         private void dequeue_frameTensor()
         {
@@ -1088,11 +1094,23 @@ namespace onnxNote
 
             dataGridView_PoseLines.Rows.Clear();
 
+            List<string> LabelItems = ((DataGridViewComboBoxColumn)dataGridView_PoseLines.Columns[3]).Items.Cast<string>().ToList();
+
             foreach (var Line in Lines)
             {
-                if (int.TryParse(Line.Split(',')[0], out int frameindex))
+                string[] cols = Line.Split(',');
+                string frameIndexString = cols[0];
+                string labelString = cols[cols.Length - 1];
+                string bodyString = string.Join(",", cols.Skip(1).Take(cols.Length - 2));
+
+                int labelIndex = -1;
+                if (!int.TryParse(labelString, out labelIndex)) { labelIndex = -1; }
+                string label = labelIndex < 0 || labelIndex >= LabelItems.Count ? "" : LabelItems[labelIndex];
+
+
+                if (int.TryParse(frameIndexString, out int frameindex))
                 {
-                    dataGridView_PoseLines.Rows.Add(new object[] { true, Line.Split(',')[0], Line });
+                    dataGridView_PoseLines.Rows.Add(new object[] { true, frameIndexString, bodyString, label });
                 }
             }
         }
@@ -1125,13 +1143,25 @@ namespace onnxNote
         private void button_SaveFrameChecked_Click(object sender, EventArgs e)
         {
             SaveFileDialog sfd = new SaveFileDialog();
+            sfd.Filter = "CSV|*.csv";
+            sfd.FileName = "LabeledPose.csv";
+
             if (sfd.ShowDialog() != DialogResult.OK) return;
             List<string> Lines = new List<string>();
+            List<string> LabelItems = ((DataGridViewComboBoxColumn)dataGridView_PoseLines.Columns[3]).Items.Cast<string>().ToList();
+
+            Lines.Add("frame," + PoseInfo.ToLineStringHeader());
 
             foreach (DataGridViewRow row in dataGridView_PoseLines.Rows)
             {
-                if (row.Cells.Count <= 2) continue;
-                if ((bool)row.Cells[0].Value) Lines.Add(row.Cells[2].Value.ToString());
+                if (row.Cells.Count <= 3 || row.Cells[1].Value == null) continue;
+
+                string frameIndexString = row.Cells[1].Value.ToString();
+                string bodyString = row.Cells[2].Value.ToString();
+                string label = row.Cells[3].Value.ToString();
+                int labelIndex = LabelItems.IndexOf(label);
+
+                if ((bool)row.Cells[0].Value) Lines.Add($"{frameIndexString},{bodyString},{labelIndex}");
             }
 
             File.WriteAllLines(sfd.FileName, Lines);
@@ -1140,20 +1170,29 @@ namespace onnxNote
 
         private void dataGridView_PoseLines_CurrentCellChanged(object sender, EventArgs e)
         {
-            if (capture != null)
+            if (capture != null && dataGridView_PoseLines.Rows.Count > 0)
             {
-                if (dataGridView_PoseLines.SelectedCells.Count < 1) return;
-                string cellvalue = dataGridView_PoseLines.Rows[dataGridView_PoseLines.SelectedCells[0].RowIndex].Cells[1].Value.ToString();
-
-                int newFrameIndex = int.Parse(cellvalue);
-
-                if (trackBar_frameIndex.Value != newFrameIndex)
+                try
                 {
-                    trackBar_frameIndex.Value = newFrameIndex;
+                    if (dataGridView_PoseLines.SelectedCells.Count < 1
+                        || dataGridView_PoseLines.Rows[dataGridView_PoseLines.SelectedCells[0].RowIndex].Cells[1].Value == null) return;
+
+                    string cellvalue = dataGridView_PoseLines.Rows[dataGridView_PoseLines.SelectedCells[0].RowIndex].Cells[1].Value.ToString();
+
+                    int newFrameIndex = int.Parse(cellvalue);
+
+                    if (trackBar_frameIndex.Value != newFrameIndex)
+                    {
+                        trackBar_frameIndex.Value = newFrameIndex;
+                    }
+                    else
+                    {
+                        trackBar_frameIndex_ValueChanged(null, null);
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    trackBar_frameIndex_ValueChanged(null, null);
+                    Console.WriteLine($"{ex.Message}");
                 }
             }
         }
@@ -1224,6 +1263,30 @@ namespace onnxNote
                     row.Cells[3].Value = topLabel;
                 }
 
+            }
+        }
+
+        private void button_SaveWorkSetting_Click(object sender, EventArgs e)
+        {
+            string FormContents = WinFormStringCnv.ToString(this);
+
+            SaveFileDialog sfd = new SaveFileDialog();
+            sfd.Filter = "TEXT|*.txt";
+            sfd.FileName = textBox_WorkTitle.Text;
+
+            if (sfd.ShowDialog() == DialogResult.OK)
+            {
+                File.WriteAllText(sfd.FileName, FormContents);
+            }
+        }
+
+        private void button_LoadWorkSetting_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog ofd = new OpenFileDialog();
+            ofd.Filter = "TEXT|*.txt";
+            if (ofd.ShowDialog() == DialogResult.OK)
+            {
+                WinFormStringCnv.setControlFromString(this, File.ReadAllText(ofd.FileName));
             }
         }
     }
