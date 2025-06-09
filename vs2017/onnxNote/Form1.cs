@@ -220,7 +220,9 @@ namespace onnxNote
         }
 
         public int PredictTaskBatchSize = 1024;
-        string masterDirectoryPath = "";
+        List<string> capturePathList = new List<string>();
+        string ext = "";
+
         YoloPoseModelHandle yoloPoseModelHandle;
 
         private void button_Save_Click(object sender, EventArgs e)
@@ -233,29 +235,24 @@ namespace onnxNote
 
                 if (ofd.ShowDialog() != DialogResult.OK) return;
 
-                SaveFileDialog sfd = new SaveFileDialog();
-                sfd.FileName = Path.GetFileNameWithoutExtension(ofd.FileName);
-                sfd.Filter = "";
-                if (sfd.ShowDialog() != DialogResult.OK) return;
-
-                masterDirectoryPath = Path.Combine(Path.GetDirectoryName(sfd.FileName), Path.GetFileNameWithoutExtension(sfd.FileName));
-
-
-                string ext = Path.GetExtension(ofd.FileName);
-
-                if (ext == ".mp4")
+                if (ofd.FileNames.Length == 1)
                 {
-                    if (capture != null) capture.Dispose();
-                    capture = new VideoCapture(ofd.FileName);
-                    trackBar_frameIndex.Maximum = capture.FrameCount;
-                    trackBar_frameIndex.Value = 1;
+                    SaveFileDialog sfd = new SaveFileDialog();
+                    sfd.FileName = Path.GetFileNameWithoutExtension(ofd.FileName);
+                    sfd.Filter = "";
+                    if (sfd.ShowDialog() != DialogResult.OK) return;
+
+                    capturePathList.Add(sfd.FileName);
+                    //Path.Combine(Path.GetDirectoryName(sfd.FileName), Path.GetFileNameWithoutExtension(sfd.FileName))
                 }
                 else
                 {
-                    return;
+                    foreach (var filePath in ofd.FileNames)
+                    {
+                        capturePathList.Add(filePath);
+                    }
                 }
 
-                if (capture == null) return;
 
                 if (!int.TryParse(textBox_PredictBatchSize.Text, out PredictTaskBatchSize))
                 {
@@ -285,49 +282,82 @@ namespace onnxNote
         BlockingCollection<frameDataSet> frameVideoMatQueue;
         BlockingCollection<frameDataSet> frameShowQueue;
 
+        string masterDirectoryPath = "";
+
         private void backgroundWorker_posePredict_DoWork(object sender, DoWorkEventArgs e)
         {
             try
             {
-                BackgroundWorker worker = (BackgroundWorker)sender;
-                if (!Directory.Exists(masterDirectoryPath)) { Directory.CreateDirectory(masterDirectoryPath); };
+                foreach (string capturePath in capturePathList)
+                {
+                    Console.WriteLine($"{capturePath}");
 
-                taskStartTime = DateTime.Now;
+                    ext = Path.GetExtension(capturePath);
 
-                frameBitmapQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize * 2);
-                frameTensorQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize * 2);
-                framePoseInfoQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize * 2);
-                frameReportQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize * 2);
-                frameVideoMatQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize * 2);
-                frameShowQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize * 2);
+                    if (ext == ".mp4")
+                    {
+                        if (capture != null) capture.Dispose();
+                        capture = new VideoCapture(capturePath);
+                        
+                        if (this.InvokeRequired)
+                        {
+                            this.Invoke((Action)(() => {
+                                trackBar_frameIndex.Maximum = capture.FrameCount;
+                                trackBar_frameIndex.Value = 1;
+                                Console.WriteLine($"{trackBar_frameIndex.Maximum} {trackBar_frameIndex.Value}");
+                            }));
+                        }
+                    }
+                    else
+                    {
+                        return;
+                    }
 
-                Task task_frameVideoReader = Task.Run(() => dequeue_frameVideoReader(worker, e));
-                Task task_frameBitmap = Task.Run(() => dequeue_frameBitmap());
-                Task task_frameTensor = Task.Run(() => dequeue_frameTensor());
-                Task task_framePoseInfo = Task.Run(() => dequeue_framePoseInfo());
-                Task task_frameReport = Task.Run(() => dequeue_frameReport());
-                Task task_frameVideoMat = Task.Run(() => dequeue_frameVideoMat());
-                Task task_frameShow = Task.Run(() => dequeue_frameShow());
+                    if (capture == null) return;
+
+                    masterDirectoryPath = Path.Combine(Path.GetDirectoryName(capturePath), Path.GetFileNameWithoutExtension(capturePath));
+
+                    BackgroundWorker worker = (BackgroundWorker)sender;
+                    if (!Directory.Exists(masterDirectoryPath)) { Directory.CreateDirectory(masterDirectoryPath); };
+
+                    taskStartTime = DateTime.Now;
+
+                    frameBitmapQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize * 2);
+                    frameTensorQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize * 2);
+                    framePoseInfoQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize * 2);
+                    frameReportQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize * 2);
+                    frameVideoMatQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize * 2);
+                    frameShowQueue = new BlockingCollection<frameDataSet>(PredictTaskBatchSize * 2);
+
+                    Task task_frameVideoReader = Task.Run(() => dequeue_frameVideoReader(worker, e));
+                    Task task_frameBitmap = Task.Run(() => dequeue_frameBitmap());
+                    Task task_frameTensor = Task.Run(() => dequeue_frameTensor());
+                    Task task_framePoseInfo = Task.Run(() => dequeue_framePoseInfo());
+                    Task task_frameReport = Task.Run(() => dequeue_frameReport());
+                    Task task_frameVideoMat = Task.Run(() => dequeue_frameVideoMat());
+                    Task task_frameShow = Task.Run(() => dequeue_frameShow());
 
 
-                task_frameVideoReader.Wait();
-                task_frameBitmap.Wait();
-                task_frameTensor.Wait();
-                task_framePoseInfo.Wait();
-                task_frameReport.Wait();
-                task_frameVideoMat.Wait();
-                task_frameShow.Wait();
+                    task_frameVideoReader.Wait();
+                    task_frameBitmap.Wait();
+                    task_frameTensor.Wait();
+                    task_framePoseInfo.Wait();
+                    task_frameReport.Wait();
+                    task_frameVideoMat.Wait();
+                    task_frameShow.Wait();
 
-                timer1.Stop();
-                timer1_Tick(null, null);
+                    timer1.Stop();
+                    timer1_Tick(null, null);
 
-                frameBitmapQueue.Dispose();
-                frameTensorQueue.Dispose();
-                framePoseInfoQueue.Dispose();
-                frameReportQueue.Dispose();
-                frameVideoMatQueue.Dispose();
-                frameShowQueue.Dispose();
-            
+                    frameBitmapQueue.Dispose();
+                    frameTensorQueue.Dispose();
+                    framePoseInfoQueue.Dispose();
+                    frameReportQueue.Dispose();
+                    frameVideoMatQueue.Dispose();
+                    frameShowQueue.Dispose();
+
+                }
+
             }
             catch (Exception ex)
             {
@@ -1184,7 +1214,7 @@ namespace onnxNote
                 List<string> rowLabels = new List<string>();
                 foreach (DataGridViewRow row in rows)
                 {
-                    if(row.Cells[3].Value!=null) rowLabels.Add(row.Cells[3].Value.ToString());
+                    if (row.Cells[3].Value != null) rowLabels.Add(row.Cells[3].Value.ToString());
 
                 }
 
