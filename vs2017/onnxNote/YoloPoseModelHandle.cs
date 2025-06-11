@@ -368,6 +368,25 @@ namespace YoloPoseOnnxHandle
             return linePose;
         }
 
+        public string ToColString()
+        {
+            var headers = ToLineStringHeader().Split(',');
+            var values = ToLineString().Split(',');
+
+            if (headers.Length != values.Length)
+            {
+                return $"value.Length unmatch error \r\n{values.Length}/{headers.Length}";
+            }
+
+            var result = new StringBuilder();
+            for (int i = 0; i < headers.Length; i++)
+            {
+                result.AppendLine($"{headers[i]}: {values[i]}");
+            }
+
+            return result.ToString();
+        }
+
     }
 
     public class Bbox

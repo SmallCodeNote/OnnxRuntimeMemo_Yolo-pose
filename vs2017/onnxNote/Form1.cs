@@ -53,10 +53,14 @@ namespace onnxNote
                     WinFormStringCnv.setControlFromString(this, File.ReadAllText(paramFilename));
                 }
             }
+
+            textBox_PoseInfo.Text = "";
+
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
+            textBox_PoseInfo.Text = "";
             trackBar_frameIndex.Value = 0;
             string FormContents = WinFormStringCnv.ToString(this);
 
@@ -158,7 +162,6 @@ namespace onnxNote
                     Bitmap bitmap = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(frame);
                     List<PoseInfo> poseInfos = yoloPoseModelHandle.Predict(bitmap);
                     drawPose(bitmap, poseInfos);
-
 
                     pictureBoxUpdate(pictureBox, bitmap);
 
@@ -1049,8 +1052,22 @@ namespace onnxNote
                 int r = 8;
 
                 g.FillEllipse(Brushes.LightGreen, cx - r, cy - r, r * 2, r * 2);
+
+                var headers = PoseInfo.ToLineStringHeader().Split(',');
+
+                if (headers.Length < poseLine.Length) return;
+
+                var result = new StringBuilder();
+                for (int i = 0; i < poseLine.Length; i++)
+                {
+                    result.AppendLine($"{headers[i]}: {poseLine[i]}");
+                }
+                textBox_PoseInfo.Text = result.ToString();
+
             }
-            catch { }
+            catch(Exception ex) {
+                Console.WriteLine($"{System.Reflection.MethodBase.GetCurrentMethod().Name} {ex.Message} {ex.StackTrace}");
+            }
         }
 
 
