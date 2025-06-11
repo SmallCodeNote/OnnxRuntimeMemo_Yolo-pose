@@ -485,7 +485,7 @@ namespace YoloPoseOnnxHandle
 
                 double angleRad = Math.Acos(dotProduct / (magnitudeA * magnitudeB));
 
-                return (float)(angleRad * (180 / Math.PI));
+                return (float)(angleRad * (180.0 / Math.PI));
             }
             else
             {
@@ -510,12 +510,41 @@ namespace YoloPoseOnnxHandle
 
                 double angleRad = Math.Acos(dotProduct / (magnitudeV1 * magnitudeV2));
 
-                return (float)(angleRad * (180 / Math.PI));
+                return (float)(angleRad * (180.0 / Math.PI));
             }
             else
             {
                 return -1f;
             }
+        }
+
+        private float KeyPointAngleXLength(KeyPoint p0, float Confidence0, KeyPoint p1, float Confidence1, KeyPoint p2, float Confidence2)
+        {
+            if (p0.Confidence >= Confidence0 && p1.Confidence >= Confidence1 && p2.Confidence >= Confidence2)
+            {
+                double Length = KeyPointLength(p1, Confidence1, p2, Confidence2);
+
+                double v1X = p1.X - p0.X;
+                double v1Y = p1.Y - p0.Y;
+                double v2X = p2.X - p0.X;
+                double v2Y = p2.Y - p0.Y;
+
+                double crossProduct = v1X * v2Y - v1Y * v2X;
+
+                double magnitudeV1 = Math.Sqrt(v1X * v1X + v1Y * v1Y);
+                double magnitudeV2 = Math.Sqrt(v2X * v2X + v2Y * v2Y);
+
+                double angleRad = Math.Sin(crossProduct / (magnitudeV1 * magnitudeV2));
+
+                if (angleRad >= 0) { return (float)Length; }
+                else { return (float)(-1.0 * Length); }
+
+            }
+            else
+            {
+                return 0;
+            }
+
         }
 
         private float KeyPointLength(KeyPoint p0, float Confidence0, KeyPoint p1, float Confidence1)
@@ -532,7 +561,6 @@ namespace YoloPoseOnnxHandle
                 return -1f;
             }
         }
-
 
         private float KeyPointLength0(KeyPoint p0, float Confidence0, KeyPoint p1, float Confidence1)
         {
@@ -632,11 +660,11 @@ namespace YoloPoseOnnxHandle
         public float AnkleRightLength { get { return KeyPointLength(KneeRight, confidenceLevel_Knee, AnkleRight, confidenceLevel_Ankle); } }
 
         public float TorsoLength { get { return KeyPointLength(Shoulder(), confidenceLevel_Shoulder, Hip(), confidenceLevel_Hip); } }
-        public float ShoulderWidth { get { return KeyPointLength0(ShoulderLeft, confidenceLevel_Shoulder, ShoulderRight, confidenceLevel_Shoulder); } }
+        public float ShoulderWidth { get { return KeyPointAngleXLength(Head(), confidenceLevel_Head, ShoulderLeft, confidenceLevel_Shoulder, ShoulderRight, confidenceLevel_Shoulder); } }
 
-        public float HipWidth { get { return KeyPointLength0(HipLeft, confidenceLevel_Hip, HipRight, confidenceLevel_Hip); } }
-        public float EyeWidth { get { return KeyPointLength0(EyeLeft, confidenceLevel_Eye, EyeRight, confidenceLevel_Eye); } }
-        public float EarWidth { get { return KeyPointLength0(EarLeft, confidenceLevel_Ear, EarRight, confidenceLevel_Ear); } }
+        public float HipWidth { get { return KeyPointAngleXLength(Shoulder(),confidenceLevel_Shoulder, HipLeft, confidenceLevel_Hip, HipRight, confidenceLevel_Hip); } }
+        public float EyeWidth { get { return KeyPointAngleXLength(Shoulder(), confidenceLevel_Shoulder, EyeRight, confidenceLevel_Eye, EyeLeft, confidenceLevel_Eye); } }
+        public float EarWidth { get { return KeyPointAngleXLength(Shoulder(), confidenceLevel_Shoulder, EarRight, confidenceLevel_Ear, EarLeft, confidenceLevel_Ear); } }
 
         public float HeadYawAngle
         {

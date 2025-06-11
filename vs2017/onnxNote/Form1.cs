@@ -531,7 +531,6 @@ namespace onnxNote
             }
         }
 
-
         public unsafe Tensor<float> ConvertBitmapToTensor(Bitmap bitmap, int width = 640, int height = 640)
         {
             var tensor = new DenseTensor<float>(new[] { 1, 3, height, width });
@@ -572,7 +571,6 @@ namespace onnxNote
             var resultTensor = new DenseTensor<float>(tensorArray, new[] { 1, 3, height, width });
             return resultTensor;
         }
-
 
         private void dequeue_frameTensor()
         {
@@ -1046,8 +1044,8 @@ namespace onnxNote
                 string[] poseLine = row.Cells[2].Value?.ToString()?.Split(',') ?? Array.Empty<string>();
                 if (poseLine.Length <= 2) return;
 
-                int cx = (int)double.Parse(poseLine[1]);
-                int cy = (int)double.Parse(poseLine[2]);
+                int cx = (int)double.Parse(poseLine[0]);
+                int cy = (int)double.Parse(poseLine[1]);
                 int r = 8;
 
                 g.FillEllipse(Brushes.LightGreen, cx - r, cy - r, r * 2, r * 2);
