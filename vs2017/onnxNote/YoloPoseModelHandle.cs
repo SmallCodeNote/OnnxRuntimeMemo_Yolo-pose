@@ -247,9 +247,9 @@ namespace YoloPoseOnnxHandle
                         for (int index = 0; index < PoseInfos.Count; index++)
                         {
                             var item = PoseInfos[index];
-                            if (item.Bbox.Overlap(pi.Bbox) >= 0.8)
+                            if (item.Overlap(pi) >= 0.8)
                             {
-                                item.Bbox.OverlapUpdate(pi.Bbox);
+                                item.Merge(pi);
                                 update = true;
                             }
                         }
@@ -289,7 +289,7 @@ namespace YoloPoseOnnxHandle
                             var item = PoseInfos[index];
                             if (item.Bbox.Overlap(pi.Bbox) >= 0.8)
                             {
-                                item.Bbox.OverlapUpdate(pi.Bbox);
+                                item.Merge(pi);
                                 update = true;
                             }
                         }
@@ -387,6 +387,25 @@ namespace YoloPoseOnnxHandle
             return result.ToString();
         }
 
+        public float Overlap(PoseInfo poseInfo)
+        {
+            float o1 = this.Bbox.Overlap(poseInfo.Bbox);
+            float o2 = this.KeyPoints.OverlapTolso(poseInfo.KeyPoints);
+
+            float result = o2 > 0.8f ? o2 : o1;
+            //float result = Math.Max(o1, o2); ;
+
+            return result;
+        }
+
+
+        public void Merge(PoseInfo poseInfo)
+        {
+            this.KeyPoints.Merge(poseInfo.KeyPoints);
+            this.Bbox.Merge(poseInfo.Bbox);
+
+        }
+
     }
 
     public class Bbox
@@ -434,7 +453,7 @@ namespace YoloPoseOnnxHandle
             return intersectionArea / unionArea;
         }
 
-        public float OverlapUpdate(Bbox bbox)
+        public float Merge(Bbox bbox)
         {
             float intersectionLeft = Math.Max(this.Left, bbox.Left);
             float intersectionTop = Math.Max(this.Top, bbox.Top);
@@ -512,7 +531,6 @@ namespace YoloPoseOnnxHandle
             }
         }
 
-
         private float KeyPointAngle(KeyPoint p0, float Confidence0, KeyPoint p1, float Confidence1, KeyPoint p2, float Confidence2)
         {
             if (p0.Confidence >= Confidence0 && p1.Confidence >= Confidence1 && p2.Confidence >= Confidence2)
@@ -580,22 +598,6 @@ namespace YoloPoseOnnxHandle
                 return -1f;
             }
         }
-
-        private float KeyPointLength0(KeyPoint p0, float Confidence0, KeyPoint p1, float Confidence1)
-        {
-            if (p0.Confidence >= Confidence0 && p1.Confidence >= Confidence1)
-            {
-                double v1X = p1.X - p0.X;
-                double v1Y = p1.Y - p0.Y;
-
-                return (float)(Math.Sqrt(v1X * v1X + v1Y * v1Y));
-            }
-            else
-            {
-                return -1f;
-            }
-        }
-
 
         private KeyPoint KeyPointSum(KeyPoint p1, KeyPoint p2, float Confidence)
         {
@@ -681,7 +683,7 @@ namespace YoloPoseOnnxHandle
         public float TorsoLength { get { return KeyPointLength(Shoulder(), confidenceLevel_Shoulder, Hip(), confidenceLevel_Hip); } }
         public float ShoulderWidth { get { return KeyPointAngleXLength(Head(), confidenceLevel_Head, ShoulderLeft, confidenceLevel_Shoulder, ShoulderRight, confidenceLevel_Shoulder); } }
 
-        public float HipWidth { get { return KeyPointAngleXLength(Shoulder(),confidenceLevel_Shoulder, HipLeft, confidenceLevel_Hip, HipRight, confidenceLevel_Hip); } }
+        public float HipWidth { get { return KeyPointAngleXLength(Shoulder(), confidenceLevel_Shoulder, HipLeft, confidenceLevel_Hip, HipRight, confidenceLevel_Hip); } }
         public float EyeWidth { get { return KeyPointAngleXLength(Shoulder(), confidenceLevel_Shoulder, EyeRight, confidenceLevel_Eye, EyeLeft, confidenceLevel_Eye); } }
         public float EarWidth { get { return KeyPointAngleXLength(Shoulder(), confidenceLevel_Shoulder, EarRight, confidenceLevel_Ear, EarLeft, confidenceLevel_Ear); } }
 
@@ -745,7 +747,6 @@ namespace YoloPoseOnnxHandle
             confidenceLevel_Ankle = confidenceLevel;
 
         }
-
 
         public PoseKeyPoints(float[] output, int startIndex)
         {
@@ -869,6 +870,146 @@ namespace YoloPoseOnnxHandle
                    $"{AnkleLeft.Confidence:0.00}, {AnkleRight.Confidence:0.00}";
         }
 
+        public static List<KeyPoint> ClipPolygon(List<KeyPoint> subject, List<KeyPoint> clip)
+        {
+            List<KeyPoint> output = new List<KeyPoint>(subject);
+
+            for (int i = 0; i < clip.Count; i++)
+            {
+                List<KeyPoint> input = new List<KeyPoint>(output);
+                output.Clear();
+
+                KeyPoint A = clip[i];
+                KeyPoint B = clip[(i + 1) % clip.Count];
+
+                for (int j = 0; j < input.Count; j++)
+                {
+                    KeyPoint P = input[j];
+                    KeyPoint Q = input[(j + 1) % input.Count];
+
+                    bool insideP = IsInside(A, B, P);
+                    bool insideQ = IsInside(A, B, Q);
+
+                    if (insideP && insideQ)
+                    {
+                        output.Add(Q);
+                    }
+                    else if (insideP && !insideQ)
+                    {
+                        output.Add(Intersect(A, B, P, Q));
+                    }
+                    else if (!insideP && insideQ)
+                    {
+                        output.Add(Intersect(A, B, P, Q));
+                        output.Add(Q);
+                    }
+                }
+            }
+
+            return output;
+        }
+
+        private static bool IsInside(KeyPoint A, KeyPoint B, KeyPoint P)
+        {
+            return (B.X - A.X) * (P.Y - A.Y) > (B.Y - A.Y) * (P.X - A.X);
+        }
+
+        private static KeyPoint Intersect(KeyPoint A, KeyPoint B, KeyPoint P, KeyPoint Q)
+        {
+            float confidence = new float[] { A.Confidence, B.Confidence, P.Confidence, Q.Confidence }.Max();
+
+            double A1 = B.Y - A.Y;
+            double B1 = A.X - B.X;
+            double C1 = A1 * A.X + B1 * A.Y;
+
+            double A2 = Q.Y - P.Y;
+            double B2 = P.X - Q.X;
+            double C2 = A2 * P.X + B2 * P.Y;
+
+            double det = A1 * B2 - A2 * B1;
+            if (Math.Abs(det) < 1e-10)
+                return new KeyPoint(0, 0, confidence); // Degenerate case
+
+            double x = (B2 * C1 - B1 * C2) / det;
+            double y = (A1 * C2 - A2 * C1) / det;
+            return new KeyPoint((float)x, (float)y, confidence);
+        }
+
+        private static double GetPolygonArea(List<KeyPoint> corners)
+        {
+            if (corners.Count < 3) return 0;
+
+            double area = 0;
+            for (int i = 0; i < corners.Count; i++)
+            {
+                KeyPoint p1 = corners[i];
+                KeyPoint p2 = corners[(i + 1) % corners.Count];
+                area += (p1.X * p2.Y) - (p2.X * p1.Y);
+            }
+            return Math.Abs(area) / 2.0;
+        }
+
+        public static float CalculateIntersectionOverUnion(KeyPoint p11, KeyPoint p12, KeyPoint p13, KeyPoint p14,
+                                                          KeyPoint p21, KeyPoint p22, KeyPoint p23, KeyPoint p24)
+        {
+            List<KeyPoint> poly1 = new List<KeyPoint> { p11, p12, p13, p14 };
+            List<KeyPoint> poly2 = new List<KeyPoint> { p21, p22, p23, p24 };
+
+            float area1 = (float)GetPolygonArea(poly1);
+            float area2 = (float)GetPolygonArea(poly2);
+
+            List<KeyPoint> intersectionPolygon = ClipPolygon(poly1, poly2);
+            float intersectionArea = (float)GetPolygonArea(intersectionPolygon);
+
+            float unionArea = area1 + area2 - intersectionArea;
+            float result = unionArea > 0f ? intersectionArea / unionArea : 0;
+
+            return result;
+        }
+
+        public float OverlapTolso(PoseKeyPoints kps1, PoseKeyPoints kps2)
+        {
+            float result = CalculateIntersectionOverUnion(
+                kps1.ShoulderLeft, kps1.ShoulderRight, kps1.HipRight, kps1.HipLeft
+                , kps2.ShoulderLeft, kps2.ShoulderRight, kps2.HipRight, kps2.HipLeft);
+
+            return result;
+        }
+
+        public float OverlapTolso(PoseInfo poseInfo)
+        {
+            return OverlapTolso(this, poseInfo.KeyPoints);
+        }
+
+        public float OverlapTolso(PoseKeyPoints kps)
+        {
+            float result = OverlapTolso(this, kps);
+            return result;
+        }
+
+        public void Merge(PoseKeyPoints poseKeyPoints)
+        {
+            if (poseKeyPoints == null) return;
+
+            this.Nose?.Merge(poseKeyPoints.Nose);
+            this.EyeLeft?.Merge(poseKeyPoints.EyeLeft);
+            this.EyeRight?.Merge(poseKeyPoints.EyeRight);
+            this.EarLeft?.Merge(poseKeyPoints.EarLeft);
+            this.EarRight?.Merge(poseKeyPoints.EarRight);
+            this.ShoulderLeft?.Merge(poseKeyPoints.ShoulderLeft);
+            this.ShoulderRight?.Merge(poseKeyPoints.ShoulderRight);
+            this.ElbowLeft?.Merge(poseKeyPoints.ElbowLeft);
+            this.ElbowRight?.Merge(poseKeyPoints.ElbowRight);
+            this.WristLeft?.Merge(poseKeyPoints.WristLeft);
+            this.WristRight?.Merge(poseKeyPoints.WristRight);
+            this.HipLeft?.Merge(poseKeyPoints.HipLeft);
+            this.HipRight?.Merge(poseKeyPoints.HipRight);
+            this.KneeLeft?.Merge(poseKeyPoints.KneeLeft);
+            this.KneeRight?.Merge(poseKeyPoints.KneeRight);
+            this.AnkleLeft?.Merge(poseKeyPoints.AnkleLeft);
+            this.AnkleRight?.Merge(poseKeyPoints.AnkleRight);
+
+        }
     }
 
     public class KeyPoint
@@ -912,6 +1053,11 @@ namespace YoloPoseOnnxHandle
             return $"{X:0},{Y:0},{Confidence:0.00}";
         }
 
+        public void Merge(KeyPoint keyPoint)
+        {
+            if (this.X == 0) { this.X = keyPoint.X; }
+            if (this.Y == 0) { this.Y = keyPoint.Y; }
+        }
     }
 
 }
