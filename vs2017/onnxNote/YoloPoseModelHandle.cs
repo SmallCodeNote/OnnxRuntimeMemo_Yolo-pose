@@ -80,7 +80,7 @@ namespace YoloPoseOnnxHandle
             return false;
         }
 
-        public List<PoseInfo> Predict(Bitmap bitmap, float confidenceThreshold = -1.0f)
+        public List<PoseInfo> Predict(Bitmap bitmap, float overlapThreshold = 0.8f, float confidenceThreshold = -1.0f)
         {
             if (confidenceThreshold < 0) { confidenceThreshold = ConfidenceThreshold; }
             ImageTensor = ConvertBitmapToTensor(bitmap);
@@ -90,10 +90,10 @@ namespace YoloPoseOnnxHandle
             var output = results.First().AsEnumerable<float>().ToArray();
             results.Dispose();
 
-            return PoseInfoRead(output, confidenceThreshold);
+            return PoseInfoRead(output,overlapThreshold, confidenceThreshold);
         }
 
-        public List<PoseInfo> Predict(Tensor<float> ImageTensor, float confidenceThreshold = -1.0f)
+        public List<PoseInfo> Predict(Tensor<float> ImageTensor, float overlapThreshold = 0.8f, float confidenceThreshold = -1.0f)
         {
             var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor(SessionInputName, ImageTensor) };
             var results = session.Run(inputs);
@@ -101,7 +101,7 @@ namespace YoloPoseOnnxHandle
             results.Dispose();
 
             if (confidenceThreshold < 0) { confidenceThreshold = ConfidenceThreshold; }
-            return PoseInfoRead(output, confidenceThreshold);
+            return PoseInfoRead(output,overlapThreshold, confidenceThreshold);
         }
 
         public float[] PredictOutput(Tensor<float> ImageTensor, float confidenceThreshold = -1.0f)
@@ -225,13 +225,13 @@ namespace YoloPoseOnnxHandle
             return SessionInputName;
         }
 
-        public List<PoseInfo> PoseInfoRead(IDisposableReadOnlyCollection<DisposableNamedOnnxValue> results, float confidenceThreshold = -1.0f)
+        public List<PoseInfo> PoseInfoRead(IDisposableReadOnlyCollection<DisposableNamedOnnxValue> results, float overlapThreshold = 0.8f, float confidenceThreshold = -1.0f)
         {
             float[] outputArray = results.First().AsEnumerable<float>().ToArray();
-            return PoseInfoRead(outputArray);
+            return PoseInfoRead(outputArray,overlapThreshold,confidenceThreshold);
         }
 
-        public List<PoseInfo> PoseInfoRead(float[] outputArray, float confidenceThreshold = -1.0f)
+        public List<PoseInfo> PoseInfoRead(float[] outputArray, float overlapThreshold = 0.8f, float confidenceThreshold = -1.0f)
         {
             if (confidenceThreshold < 0) { confidenceThreshold = ConfidenceThreshold; }
             List<PoseInfo> PoseInfos = new List<PoseInfo>();
@@ -247,7 +247,7 @@ namespace YoloPoseOnnxHandle
                         for (int index = 0; index < PoseInfos.Count; index++)
                         {
                             var item = PoseInfos[index];
-                            if (item.Overlap(pi) >= 0.8)
+                            if (item.Overlap(pi) >= overlapThreshold)
                             {
                                 item.Merge(pi);
                                 update = true;
@@ -387,12 +387,15 @@ namespace YoloPoseOnnxHandle
             return result.ToString();
         }
 
-        public float Overlap(PoseInfo poseInfo)
+        public float Overlap(PoseInfo poseInfo, float threshold = 0.8f)
         {
             float o1 = this.Bbox.Overlap(poseInfo.Bbox);
-            float o2 = this.KeyPoints.OverlapTolso(poseInfo.KeyPoints);
+            float ko1 = this.KeyPoints.OverlapTolso(poseInfo.KeyPoints);
+            float ko2 = this.KeyPoints.OverlapUpperBody(poseInfo.KeyPoints);
 
-            float result = o2 > 0.8f ? o2 : o1;
+            float o2 = (new float[] { ko1, ko2 }).Max();
+
+            float result = o2 > threshold ? o2 : o1;
             //float result = Math.Max(o1, o2); ;
 
             return result;
@@ -949,11 +952,11 @@ namespace YoloPoseOnnxHandle
             return Math.Abs(area) / 2.0;
         }
 
-        public static float CalculateIntersectionOverUnion(KeyPoint p11, KeyPoint p12, KeyPoint p13, KeyPoint p14,
-                                                          KeyPoint p21, KeyPoint p22, KeyPoint p23, KeyPoint p24)
+        public static float CalculateIntersectionOverUnion(List<KeyPoint> poly1, List<KeyPoint> poly2)
         {
-            List<KeyPoint> poly1 = new List<KeyPoint> { p11, p12, p13, p14 };
-            List<KeyPoint> poly2 = new List<KeyPoint> { p21, p22, p23, p24 };
+
+            if (poly1.Count < 3 || poly2.Count < 3) return 0f;
+
 
             float area1 = (float)GetPolygonArea(poly1);
             float area2 = (float)GetPolygonArea(poly2);
@@ -967,11 +970,34 @@ namespace YoloPoseOnnxHandle
             return result;
         }
 
+
+        public float OverlapUpperBody(PoseKeyPoints kps1, PoseKeyPoints kps2)
+        {
+            List<KeyPoint> poly1 = new List<KeyPoint> { kps1.ShoulderLeft, kps1.ShoulderRight, kps1.Head() };
+            List<KeyPoint> poly2 = new List<KeyPoint> { kps2.ShoulderLeft, kps2.ShoulderRight, kps2.Head() };
+
+            float result = CalculateIntersectionOverUnion(poly1, poly2);
+
+            return result;
+        }
+
+        public float OverlapUpperBodyo(PoseInfo poseInfo)
+        {
+            return OverlapUpperBody(this, poseInfo.KeyPoints);
+        }
+
+        public float OverlapUpperBody(PoseKeyPoints kps)
+        {
+            float result = OverlapUpperBody(this, kps);
+            return result;
+        }
+
         public float OverlapTolso(PoseKeyPoints kps1, PoseKeyPoints kps2)
         {
-            float result = CalculateIntersectionOverUnion(
-                kps1.ShoulderLeft, kps1.ShoulderRight, kps1.HipRight, kps1.HipLeft
-                , kps2.ShoulderLeft, kps2.ShoulderRight, kps2.HipRight, kps2.HipLeft);
+            List<KeyPoint> poly1 = new List<KeyPoint> { kps1.ShoulderLeft, kps1.ShoulderRight, kps1.HipRight, kps1.HipLeft };
+            List<KeyPoint> poly2 = new List<KeyPoint> { kps2.ShoulderLeft, kps2.ShoulderRight, kps2.HipRight, kps2.HipLeft };
+
+            float result = CalculateIntersectionOverUnion(poly1, poly2);
 
             return result;
         }
