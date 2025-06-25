@@ -35,6 +35,8 @@ namespace onnxNote
         {
             InitializeComponent();
             thisExeDirPath = Path.GetDirectoryName(Application.ExecutablePath);
+
+            dataGridView_PoseLines.SortCompare += dataGridView_PoseLines_SortCompare;
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -1065,7 +1067,8 @@ namespace onnxNote
                 textBox_PoseInfo.Text = result.ToString();
 
             }
-            catch(Exception ex) {
+            catch (Exception ex)
+            {
                 Console.WriteLine($"{System.Reflection.MethodBase.GetCurrentMethod().Name} {ex.Message} {ex.StackTrace}");
             }
         }
@@ -1125,7 +1128,7 @@ namespace onnxNote
 
                 if (int.TryParse(frameIndexString, out int frameindex))
                 {
-                    dataGridView_PoseLines.Rows.Add(new object[] { true, frameIndexString, bodyString, label });
+                    dataGridView_PoseLines.Rows.Add(new object[] { false, frameIndexString, bodyString, label });
                 }
             }
         }
@@ -1155,17 +1158,31 @@ namespace onnxNote
             }
         }
 
+
+
         private void button_SaveFrameChecked_Click(object sender, EventArgs e)
         {
             SaveFileDialog sfd = new SaveFileDialog();
             sfd.Filter = "CSV|*.csv";
             sfd.FileName = "LabeledPose.csv";
+            sfd.OverwritePrompt = false;
 
             if (sfd.ShowDialog() != DialogResult.OK) return;
+
             List<string> Lines = new List<string>();
             List<string> LabelItems = ((DataGridViewComboBoxColumn)dataGridView_PoseLines.Columns[3]).Items.Cast<string>().ToList();
 
-            Lines.Add("frame," + PoseInfo.ToLineStringHeader());
+
+            if (File.Exists(sfd.FileName))
+            {
+                string[] LinesExist = File.ReadAllLines(sfd.FileName);
+                Lines.AddRange(LinesExist);
+
+            }
+            else
+            {
+                Lines.Add("frame," + PoseInfo.ToLineStringHeader());
+            }
 
             foreach (DataGridViewRow row in dataGridView_PoseLines.Rows)
             {
@@ -1176,10 +1193,44 @@ namespace onnxNote
                 string label = row.Cells[3].Value.ToString();
                 int labelIndex = LabelItems.IndexOf(label);
 
-                if ((bool)row.Cells[0].Value) Lines.Add($"{frameIndexString},{bodyString},{labelIndex}");
+                try
+                {
+                    if ((bool)(row.Cells[0].Value))
+                    {
+                        string prefix = $"{frameIndexString},{bodyString}";
+                        string newLine = $"{prefix},{labelIndex}";
+
+                        int existingIndex = Lines.FindIndex(line => line.StartsWith(prefix + ",") || line == prefix);
+                        if (existingIndex >= 0)
+                        {
+                            Lines[existingIndex] = newLine;
+                        }
+                        else
+                        {
+                            Lines.Add(newLine);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"ERROR:{System.Reflection.MethodBase.GetCurrentMethod().Name} {ex.Message} {ex.StackTrace}");
+                }
             }
 
-            File.WriteAllLines(sfd.FileName, Lines);
+            string header = Lines.FirstOrDefault();
+            var sortedLines = Lines
+                .Skip(1)
+                .OrderBy(line =>
+                {
+                    string[] parts = line.Split(',');
+                    int frameIndex;
+                    return int.TryParse(parts[0], out frameIndex) ? frameIndex : int.MaxValue;
+                })
+                .ToList();
+
+            sortedLines.Insert(0, header);
+
+            File.WriteAllLines(sfd.FileName, sortedLines);
 
         }
 
@@ -1207,7 +1258,7 @@ namespace onnxNote
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"{ex.Message}");
+                    Console.WriteLine($"ERROR:{System.Reflection.MethodBase.GetCurrentMethod().Name} {ex.Message} {ex.StackTrace}");
                 }
             }
         }
@@ -1244,11 +1295,32 @@ namespace onnxNote
             }
         }
 
+        private void dataGridView_PoseLines_SortCompare(object sender, DataGridViewSortCompareEventArgs e)
+        {
+
+            if (e.Column.Name == "Column_Frame")
+            {
+                int val1, val2;
+
+                // 数値に変換して比較（変換できない場合は 0）
+                bool parsed1 = int.TryParse(e.CellValue1?.ToString(), out val1);
+                bool parsed2 = int.TryParse(e.CellValue2?.ToString(), out val2);
+
+                e.SortResult = val1.CompareTo(val2);
+
+                // 同値だったら行インデックスで比較
+                if (e.SortResult == 0)
+                    e.SortResult = e.RowIndex1.CompareTo(e.RowIndex2);
+
+                e.Handled = true;
+            }
+        }
+
         private void tabPage_YOLOPOSE_Enter(object sender, EventArgs e)
         {
             string[] items = textBox_LabelList.Text.Replace("\r\n", "\n").Trim('\n').Split('\n');
             ((DataGridViewComboBoxColumn)dataGridView_PoseLines.Columns[3]).Items.Clear();
-            int labelIndex = 1;
+            int labelIndex = 0;
             foreach (var item in items)
             {
                 ((DataGridViewComboBoxColumn)dataGridView_PoseLines.Columns[3]).Items.Add($"{labelIndex}_{item}");

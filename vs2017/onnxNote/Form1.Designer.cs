@@ -257,6 +257,7 @@
             // 
             this.Column_Label.HeaderText = "Label";
             this.Column_Label.Name = "Column_Label";
+            this.Column_Label.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.Automatic;
             this.Column_Label.Width = 70;
             // 
             // button_LoadPoseInfo
@@ -718,10 +719,6 @@
         private System.Windows.Forms.Panel panel2;
         private System.Windows.Forms.Button button_UnCheck;
         private System.Windows.Forms.Button button_Check;
-        private System.Windows.Forms.DataGridViewCheckBoxColumn Column_Checked;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Column_Frame;
-        private System.Windows.Forms.DataGridViewTextBoxColumn Column_FrameContents;
-        private System.Windows.Forms.DataGridViewComboBoxColumn Column_Label;
         private System.Windows.Forms.TextBox textBox_LabelList;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Button button_CopyFromTop;
@@ -732,6 +729,10 @@
         private System.Windows.Forms.Panel panel_Left;
         private System.Windows.Forms.TextBox textBox_PoseInfo;
         private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.DataGridViewCheckBoxColumn Column_Checked;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Column_Frame;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Column_FrameContents;
+        private System.Windows.Forms.DataGridViewComboBoxColumn Column_Label;
     }
 }
 
