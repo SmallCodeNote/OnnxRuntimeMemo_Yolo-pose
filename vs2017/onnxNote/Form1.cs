@@ -62,21 +62,23 @@ namespace onnxNote
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            textBox_PoseInfo.Text = "";
-            trackBar_frameIndex.Value = 0;
-            string FormContents = WinFormStringCnv.ToString(this);
+
+            List<string> FormContents = new List<string>(WinFormStringCnv.ToString(this).Replace("\r\n", "\n").Split('\n'));
+            FormContents.RemoveAll(s => s.StartsWith("dataGridView_PoseLines"));
+            FormContents.RemoveAll(s => s.StartsWith("trackBar_frameIndex"));
+
 
             SaveFileDialog sfd = new SaveFileDialog();
             sfd.Filter = "TEXT|*.txt";
 
             if (false && sfd.ShowDialog() == DialogResult.OK)
             {
-                File.WriteAllText(sfd.FileName, FormContents);
+                File.WriteAllText(sfd.FileName, string.Join("\r\n", FormContents));
             }
             else
             {
                 string paramFilename = Path.Combine(thisExeDirPath, "_param.txt");
-                File.WriteAllText(paramFilename, FormContents);
+                File.WriteAllText(paramFilename, string.Join("\r\n", FormContents));
             }
         }
 
@@ -1355,7 +1357,9 @@ namespace onnxNote
 
         private void button_SaveWorkSetting_Click(object sender, EventArgs e)
         {
-            string FormContents = WinFormStringCnv.ToString(this);
+            List<string> FormContents =new List<string>( WinFormStringCnv.ToString(this).Replace("\r\n","\n").Split('\n'));
+            FormContents.RemoveAll(s => s.StartsWith("dataGridView_PoseLines"));
+            FormContents.RemoveAll(s => s.StartsWith("trackBar_frameIndex"));
 
             SaveFileDialog sfd = new SaveFileDialog();
             sfd.Filter = "TEXT|*.txt";
@@ -1363,7 +1367,7 @@ namespace onnxNote
 
             if (sfd.ShowDialog() == DialogResult.OK)
             {
-                File.WriteAllText(sfd.FileName, FormContents);
+                File.WriteAllText(sfd.FileName, string.Join("\r\n", FormContents));
             }
         }
 
