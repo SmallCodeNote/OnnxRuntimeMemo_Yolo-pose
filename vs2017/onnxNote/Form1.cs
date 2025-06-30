@@ -107,6 +107,7 @@ namespace onnxNote
             string ext = Path.GetExtension(ofd.FileName);
             if (ext == ".mp4")
             {
+                targetFilename = Path.GetFileNameWithoutExtension(ofd.FileName);
                 capture = new VideoCapture(ofd.FileName);
                 trackBar_frameIndex.Maximum = capture.FrameCount;
                 trackBar_frameIndex.Value = 0;
@@ -305,6 +306,7 @@ namespace onnxNote
                     {
                         if (capture != null) capture.Dispose();
                         capture = new VideoCapture(capturePath);
+                        targetFilename = Path.GetFileNameWithoutExtension(capturePath);
 
                         if (this.InvokeRequired)
                         {
@@ -727,6 +729,8 @@ namespace onnxNote
             Console.WriteLine($"  Add+R comp {frameList[0].frameIndex} - {frameList[frameList.Count - 1].frameIndex }");
         }
 
+        string targetFilename = "";
+
         private void dequeue_frameReport()
         {
             try
@@ -772,7 +776,7 @@ namespace onnxNote
 
                 bool isFirst = true;
 
-                PoseValue.Add("frame," + PoseInfo.ToLineStringHeader());
+                PoseValue.Add("filename,frame," + PoseInfo.ToLineStringHeader());
 
 
                 if (dataGridView_PoseLines.InvokeRequired)
@@ -819,13 +823,13 @@ namespace onnxNote
                                 lineKnee += $",{pose.KeyPoints.Knee()}";
                                 lineAnkle += $",{pose.KeyPoints.Ankle()}";
 
-                                linePose = posFrame + "," + pose.ToLineString();
+                                linePose = targetFilename + "," + posFrame + "," + pose.ToLineString();
 
                                 PoseValue.Add(linePose);
 
                                 if (dataGridView_PoseLines.InvokeRequired)
                                 {
-                                    dataGridView_PoseLines.Invoke(new Action(() => dataGridView_PoseLines.Rows.Add(new object[] { false, posFrame.ToString(), linePose })));
+                                    dataGridView_PoseLines.Invoke(new Action(() => dataGridView_PoseLines.Rows.Add(new object[] { false, targetFilename, posFrame.ToString(), linePose })));
                                 }
 
                             }
@@ -1048,11 +1052,11 @@ namespace onnxNote
 
                 if (row == null) return;
 
-                string[] poseLine = row.Cells[2].Value?.ToString()?.Split(',') ?? Array.Empty<string>();
+                string[] poseLine = row.Cells[3].Value?.ToString()?.Split(',') ?? Array.Empty<string>();
                 if (poseLine.Length <= 2) return;
 
-                int cx = (int)double.Parse(poseLine[0]);
-                int cy = (int)double.Parse(poseLine[1]);
+                int cx = (int)double.Parse(poseLine[2]);
+                int cy = (int)double.Parse(poseLine[3]);
                 int r = 8;
 
                 g.FillEllipse(Brushes.LightGreen, cx - r, cy - r, r * 2, r * 2);
@@ -1114,14 +1118,15 @@ namespace onnxNote
 
             dataGridView_PoseLines.Rows.Clear();
 
-            List<string> LabelItems = ((DataGridViewComboBoxColumn)dataGridView_PoseLines.Columns[3]).Items.Cast<string>().ToList();
+            List<string> LabelItems = ((DataGridViewComboBoxColumn)dataGridView_PoseLines.Columns[4]).Items.Cast<string>().ToList();
 
             foreach (var Line in Lines)
             {
                 string[] cols = Line.Split(',');
-                string frameIndexString = cols[0];
+                string targetFilenameString = cols[0];
+                string frameIndexString = cols[1];
                 string labelString = cols[cols.Length - 1];
-                string bodyString = string.Join(",", cols.Skip(1).Take(cols.Length - 2));
+                string bodyString = string.Join(",", cols.Skip(2).Take(cols.Length - 2));
 
                 int labelIndex = -1;
                 if (!int.TryParse(labelString, out labelIndex)) { labelIndex = -1; }
@@ -1130,7 +1135,7 @@ namespace onnxNote
 
                 if (int.TryParse(frameIndexString, out int frameindex))
                 {
-                    dataGridView_PoseLines.Rows.Add(new object[] { false, frameIndexString, bodyString, label });
+                    dataGridView_PoseLines.Rows.Add(new object[] { false, targetFilenameString, frameIndexString, bodyString, label });
                 }
             }
         }
@@ -1141,7 +1146,7 @@ namespace onnxNote
             {
                 if (dataGridView_PoseLines.SelectedRows.Count < 1) return;
 
-                object value = dataGridView_PoseLines.SelectedRows[0].Cells[1].Value;
+                object value = dataGridView_PoseLines.SelectedRows[0].Cells[2].Value;
                 if (value == null) return;
 
                 string cellvalue = value.ToString();
@@ -1172,7 +1177,7 @@ namespace onnxNote
             if (sfd.ShowDialog() != DialogResult.OK) return;
 
             List<string> Lines = new List<string>();
-            List<string> LabelItems = ((DataGridViewComboBoxColumn)dataGridView_PoseLines.Columns[3]).Items.Cast<string>().ToList();
+            List<string> LabelItems = ((DataGridViewComboBoxColumn)dataGridView_PoseLines.Columns[4]).Items.Cast<string>().ToList();
 
 
             if (File.Exists(sfd.FileName))
@@ -1183,23 +1188,24 @@ namespace onnxNote
             }
             else
             {
-                Lines.Add("frame," + PoseInfo.ToLineStringHeader());
+                Lines.Add("filename,frame," + PoseInfo.ToLineStringHeader());
             }
 
             foreach (DataGridViewRow row in dataGridView_PoseLines.Rows)
             {
-                if (row.Cells.Count <= 3 || row.Cells[1].Value == null) continue;
+                if (row.Cells.Count <= 4 || row.Cells[2].Value == null) continue;
 
-                string frameIndexString = row.Cells[1].Value.ToString();
-                string bodyString = row.Cells[2].Value.ToString();
-                string label = row.Cells[3].Value.ToString();
+                string filenameString = row.Cells[1].Value.ToString();
+                string frameIndexString = row.Cells[2].Value.ToString();
+                string bodyString = row.Cells[3].Value.ToString();
+                string label = row.Cells[4].Value == null ? "-1" : row.Cells[4].Value.ToString();
                 int labelIndex = LabelItems.IndexOf(label);
 
                 try
                 {
                     if ((bool)(row.Cells[0].Value))
                     {
-                        string prefix = $"{frameIndexString},{bodyString}";
+                        string prefix = $"{filenameString},{frameIndexString},{bodyString}";
                         string newLine = $"{prefix},{labelIndex}";
 
                         int existingIndex = Lines.FindIndex(line => line.StartsWith(prefix + ",") || line == prefix);
@@ -1225,8 +1231,15 @@ namespace onnxNote
                 .OrderBy(line =>
                 {
                     string[] parts = line.Split(',');
+                    return parts[0];
+                })
+                .OrderBy(line =>
+                {
+                    string[] parts = line.Split(',');
+                    if (parts.Length < 1) return int.MaxValue;
+
                     int frameIndex;
-                    return int.TryParse(parts[0], out frameIndex) ? frameIndex : int.MaxValue;
+                    return int.TryParse(parts[1], out frameIndex) ? frameIndex : int.MaxValue;
                 })
                 .ToList();
 
@@ -1243,9 +1256,9 @@ namespace onnxNote
                 try
                 {
                     if (dataGridView_PoseLines.SelectedCells.Count < 1
-                        || dataGridView_PoseLines.Rows[dataGridView_PoseLines.SelectedCells[0].RowIndex].Cells[1].Value == null) return;
+                        || dataGridView_PoseLines.Rows[dataGridView_PoseLines.SelectedCells[0].RowIndex].Cells[2].Value == null) return;
 
-                    string cellvalue = dataGridView_PoseLines.Rows[dataGridView_PoseLines.SelectedCells[0].RowIndex].Cells[1].Value.ToString();
+                    string cellvalue = dataGridView_PoseLines.Rows[dataGridView_PoseLines.SelectedCells[0].RowIndex].Cells[2].Value.ToString();
 
                     int newFrameIndex = int.Parse(cellvalue);
 
@@ -1321,11 +1334,11 @@ namespace onnxNote
         private void tabPage_YOLOPOSE_Enter(object sender, EventArgs e)
         {
             string[] items = textBox_LabelList.Text.Replace("\r\n", "\n").Trim('\n').Split('\n');
-            ((DataGridViewComboBoxColumn)dataGridView_PoseLines.Columns[3]).Items.Clear();
+            ((DataGridViewComboBoxColumn)dataGridView_PoseLines.Columns[4]).Items.Clear();
             int labelIndex = 0;
             foreach (var item in items)
             {
-                ((DataGridViewComboBoxColumn)dataGridView_PoseLines.Columns[3]).Items.Add($"{labelIndex}_{item}");
+                ((DataGridViewComboBoxColumn)dataGridView_PoseLines.Columns[4]).Items.Add($"{labelIndex}_{item}");
                 labelIndex++;
             }
         }
@@ -1337,19 +1350,19 @@ namespace onnxNote
             if (rows.Count > 0)
             {
                 bool topCheck = bool.Parse(rows[0].Cells[0].Value.ToString());
-                string topLabel = rows[0].Cells[3].Value.ToString();
+                string topLabel = rows[0].Cells[4].Value.ToString();
 
                 List<string> rowLabels = new List<string>();
                 foreach (DataGridViewRow row in rows)
                 {
-                    if (row.Cells[3].Value != null) rowLabels.Add(row.Cells[3].Value.ToString());
+                    if (row.Cells[4].Value != null) rowLabels.Add(row.Cells[4].Value.ToString());
 
                 }
 
                 foreach (DataGridViewRow row in rows)
                 {
                     row.Cells[0].Value = topCheck;
-                    row.Cells[3].Value = topLabel;
+                    row.Cells[4].Value = topLabel;
                 }
 
             }
@@ -1357,7 +1370,7 @@ namespace onnxNote
 
         private void button_SaveWorkSetting_Click(object sender, EventArgs e)
         {
-            List<string> FormContents =new List<string>( WinFormStringCnv.ToString(this).Replace("\r\n","\n").Split('\n'));
+            List<string> FormContents = new List<string>(WinFormStringCnv.ToString(this).Replace("\r\n", "\n").Split('\n'));
             FormContents.RemoveAll(s => s.StartsWith("dataGridView_PoseLines"));
             FormContents.RemoveAll(s => s.StartsWith("trackBar_frameIndex"));
 

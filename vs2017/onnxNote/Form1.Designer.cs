@@ -39,10 +39,6 @@
             this.button_UnCheck = new System.Windows.Forms.Button();
             this.button_Check = new System.Windows.Forms.Button();
             this.dataGridView_PoseLines = new System.Windows.Forms.DataGridView();
-            this.Column_Checked = new System.Windows.Forms.DataGridViewCheckBoxColumn();
-            this.Column_Frame = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Column_FrameContents = new System.Windows.Forms.DataGridViewTextBoxColumn();
-            this.Column_Label = new System.Windows.Forms.DataGridViewComboBoxColumn();
             this.button_LoadPoseInfo = new System.Windows.Forms.Button();
             this.button_SaveFrameChecked = new System.Windows.Forms.Button();
             this.panel_Left = new System.Windows.Forms.Panel();
@@ -63,9 +59,13 @@
             this.button_OpenMovieFile = new System.Windows.Forms.Button();
             this.trackBar_frameIndex = new System.Windows.Forms.TrackBar();
             this.panel_YOLOPOSE_TOP = new System.Windows.Forms.Panel();
+            this.panel_topDirectoryPath = new System.Windows.Forms.Panel();
+            this.textBox_topDirectoryPath = new System.Windows.Forms.TextBox();
+            this.label6 = new System.Windows.Forms.Label();
+            this.panel_modelPath = new System.Windows.Forms.Panel();
             this.textBox_modelFilePath = new System.Windows.Forms.TextBox();
-            this.button_OpenModelFile = new System.Windows.Forms.Button();
             this.label_modelPath = new System.Windows.Forms.Label();
+            this.button_OpenModelFile = new System.Windows.Forms.Button();
             this.tabPage2 = new System.Windows.Forms.TabPage();
             this.button_LoadWorkSetting = new System.Windows.Forms.Button();
             this.button_SaveWorkSetting = new System.Windows.Forms.Button();
@@ -79,6 +79,11 @@
             this.label1 = new System.Windows.Forms.Label();
             this.backgroundWorker_posePredict = new System.ComponentModel.BackgroundWorker();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
+            this.Column_Checked = new System.Windows.Forms.DataGridViewCheckBoxColumn();
+            this.Filename = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Column_Frame = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Column_FrameContents = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.Column_Label = new System.Windows.Forms.DataGridViewComboBoxColumn();
             this.tabControl1.SuspendLayout();
             this.tabPage_YOLOPOSE.SuspendLayout();
             this.panel_Main.SuspendLayout();
@@ -95,6 +100,8 @@
             ((System.ComponentModel.ISupportInitialize)(this.trackBar_Conf)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar_frameIndex)).BeginInit();
             this.panel_YOLOPOSE_TOP.SuspendLayout();
+            this.panel_topDirectoryPath.SuspendLayout();
+            this.panel_modelPath.SuspendLayout();
             this.tabPage2.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -106,7 +113,7 @@
             this.tabControl1.Location = new System.Drawing.Point(0, 0);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(1094, 821);
+            this.tabControl1.Size = new System.Drawing.Size(1223, 821);
             this.tabControl1.TabIndex = 0;
             // 
             // tabPage_YOLOPOSE
@@ -115,11 +122,10 @@
             this.tabPage_YOLOPOSE.Controls.Add(this.panel_Left);
             this.tabPage_YOLOPOSE.Controls.Add(this.panel_YOLOPOSE_BOTTOM);
             this.tabPage_YOLOPOSE.Controls.Add(this.panel_YOLOPOSE_TOP);
-            this.tabPage_YOLOPOSE.Controls.Add(this.label_modelPath);
             this.tabPage_YOLOPOSE.Location = new System.Drawing.Point(4, 22);
             this.tabPage_YOLOPOSE.Name = "tabPage_YOLOPOSE";
             this.tabPage_YOLOPOSE.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage_YOLOPOSE.Size = new System.Drawing.Size(1086, 795);
+            this.tabPage_YOLOPOSE.Size = new System.Drawing.Size(1215, 795);
             this.tabPage_YOLOPOSE.TabIndex = 0;
             this.tabPage_YOLOPOSE.Text = "YOLOPOSE";
             this.tabPage_YOLOPOSE.UseVisualStyleBackColor = true;
@@ -130,9 +136,9 @@
             this.panel_Main.AutoScroll = true;
             this.panel_Main.Controls.Add(this.splitContainer1);
             this.panel_Main.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panel_Main.Location = new System.Drawing.Point(3, 39);
+            this.panel_Main.Location = new System.Drawing.Point(3, 50);
             this.panel_Main.Name = "panel_Main";
-            this.panel_Main.Size = new System.Drawing.Size(903, 678);
+            this.panel_Main.Size = new System.Drawing.Size(1032, 667);
             this.panel_Main.TabIndex = 3;
             this.panel_Main.Resize += new System.EventHandler(this.panel_Main_Resize);
             // 
@@ -154,8 +160,8 @@
             this.splitContainer1.Panel2.Controls.Add(this.dataGridView_PoseLines);
             this.splitContainer1.Panel2.Controls.Add(this.button_LoadPoseInfo);
             this.splitContainer1.Panel2.Controls.Add(this.button_SaveFrameChecked);
-            this.splitContainer1.Size = new System.Drawing.Size(903, 678);
-            this.splitContainer1.SplitterDistance = 686;
+            this.splitContainer1.Size = new System.Drawing.Size(1032, 667);
+            this.splitContainer1.SplitterDistance = 720;
             this.splitContainer1.TabIndex = 1;
             // 
             // pictureBox
@@ -174,9 +180,9 @@
             this.panel2.Controls.Add(this.button_UnCheck);
             this.panel2.Controls.Add(this.button_Check);
             this.panel2.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panel2.Location = new System.Drawing.Point(0, 643);
+            this.panel2.Location = new System.Drawing.Point(0, 632);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(213, 35);
+            this.panel2.Size = new System.Drawing.Size(308, 35);
             this.panel2.TabIndex = 3;
             // 
             // button_CopyFromTop
@@ -221,6 +227,7 @@
             this.dataGridView_PoseLines.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dataGridView_PoseLines.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.Column_Checked,
+            this.Filename,
             this.Column_Frame,
             this.Column_FrameContents,
             this.Column_Label});
@@ -229,43 +236,18 @@
             this.dataGridView_PoseLines.Name = "dataGridView_PoseLines";
             this.dataGridView_PoseLines.RowHeadersWidth = 26;
             this.dataGridView_PoseLines.RowTemplate.Height = 21;
-            this.dataGridView_PoseLines.Size = new System.Drawing.Size(213, 632);
+            this.dataGridView_PoseLines.Size = new System.Drawing.Size(308, 621);
             this.dataGridView_PoseLines.TabIndex = 0;
             this.dataGridView_PoseLines.CellValidating += new System.Windows.Forms.DataGridViewCellValidatingEventHandler(this.dataGridView_PoseLines_CellValidating);
             this.dataGridView_PoseLines.CurrentCellChanged += new System.EventHandler(this.dataGridView_PoseLines_CurrentCellChanged);
             this.dataGridView_PoseLines.RowEnter += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView_PoseLines_RowEnter);
-            // 
-            // Column_Checked
-            // 
-            this.Column_Checked.HeaderText = "";
-            this.Column_Checked.Name = "Column_Checked";
-            this.Column_Checked.Width = 24;
-            // 
-            // Column_Frame
-            // 
-            this.Column_Frame.HeaderText = "Frame";
-            this.Column_Frame.Name = "Column_Frame";
-            this.Column_Frame.Width = 60;
-            // 
-            // Column_FrameContents
-            // 
-            this.Column_FrameContents.HeaderText = "FrameContents";
-            this.Column_FrameContents.Name = "Column_FrameContents";
-            this.Column_FrameContents.Visible = false;
-            // 
-            // Column_Label
-            // 
-            this.Column_Label.HeaderText = "Label";
-            this.Column_Label.Name = "Column_Label";
-            this.Column_Label.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.Automatic;
-            this.Column_Label.Width = 70;
             // 
             // button_LoadPoseInfo
             // 
             this.button_LoadPoseInfo.Dock = System.Windows.Forms.DockStyle.Top;
             this.button_LoadPoseInfo.Location = new System.Drawing.Point(0, 23);
             this.button_LoadPoseInfo.Name = "button_LoadPoseInfo";
-            this.button_LoadPoseInfo.Size = new System.Drawing.Size(213, 23);
+            this.button_LoadPoseInfo.Size = new System.Drawing.Size(308, 23);
             this.button_LoadPoseInfo.TabIndex = 2;
             this.button_LoadPoseInfo.Text = "LoadPoseInfo";
             this.button_LoadPoseInfo.UseVisualStyleBackColor = true;
@@ -276,7 +258,7 @@
             this.button_SaveFrameChecked.Dock = System.Windows.Forms.DockStyle.Top;
             this.button_SaveFrameChecked.Location = new System.Drawing.Point(0, 0);
             this.button_SaveFrameChecked.Name = "button_SaveFrameChecked";
-            this.button_SaveFrameChecked.Size = new System.Drawing.Size(213, 23);
+            this.button_SaveFrameChecked.Size = new System.Drawing.Size(308, 23);
             this.button_SaveFrameChecked.TabIndex = 1;
             this.button_SaveFrameChecked.Text = "SaveFrameChecked";
             this.button_SaveFrameChecked.UseVisualStyleBackColor = true;
@@ -287,9 +269,9 @@
             this.panel_Left.Controls.Add(this.textBox_PoseInfo);
             this.panel_Left.Controls.Add(this.label5);
             this.panel_Left.Dock = System.Windows.Forms.DockStyle.Right;
-            this.panel_Left.Location = new System.Drawing.Point(906, 39);
+            this.panel_Left.Location = new System.Drawing.Point(1035, 50);
             this.panel_Left.Name = "panel_Left";
-            this.panel_Left.Size = new System.Drawing.Size(177, 678);
+            this.panel_Left.Size = new System.Drawing.Size(177, 667);
             this.panel_Left.TabIndex = 1;
             // 
             // textBox_PoseInfo
@@ -299,7 +281,7 @@
             this.textBox_PoseInfo.Multiline = true;
             this.textBox_PoseInfo.Name = "textBox_PoseInfo";
             this.textBox_PoseInfo.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.textBox_PoseInfo.Size = new System.Drawing.Size(177, 666);
+            this.textBox_PoseInfo.Size = new System.Drawing.Size(177, 655);
             this.textBox_PoseInfo.TabIndex = 1;
             this.textBox_PoseInfo.WordWrap = false;
             // 
@@ -320,7 +302,7 @@
             this.panel_YOLOPOSE_BOTTOM.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.panel_YOLOPOSE_BOTTOM.Location = new System.Drawing.Point(3, 717);
             this.panel_YOLOPOSE_BOTTOM.Name = "panel_YOLOPOSE_BOTTOM";
-            this.panel_YOLOPOSE_BOTTOM.Size = new System.Drawing.Size(1080, 75);
+            this.panel_YOLOPOSE_BOTTOM.Size = new System.Drawing.Size(1209, 75);
             this.panel_YOLOPOSE_BOTTOM.TabIndex = 2;
             // 
             // panel1
@@ -340,7 +322,7 @@
             this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel1.Location = new System.Drawing.Point(0, 45);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(1080, 30);
+            this.panel1.Size = new System.Drawing.Size(1209, 30);
             this.panel1.TabIndex = 1;
             // 
             // trackBar_Conf
@@ -349,7 +331,7 @@
             this.trackBar_Conf.Location = new System.Drawing.Point(427, 0);
             this.trackBar_Conf.Maximum = 100;
             this.trackBar_Conf.Name = "trackBar_Conf";
-            this.trackBar_Conf.Size = new System.Drawing.Size(497, 30);
+            this.trackBar_Conf.Size = new System.Drawing.Size(626, 30);
             this.trackBar_Conf.TabIndex = 9;
             this.trackBar_Conf.TickFrequency = 10;
             this.trackBar_Conf.Value = 80;
@@ -359,7 +341,7 @@
             // label_ConfThreshold
             // 
             this.label_ConfThreshold.Dock = System.Windows.Forms.DockStyle.Right;
-            this.label_ConfThreshold.Location = new System.Drawing.Point(924, 0);
+            this.label_ConfThreshold.Location = new System.Drawing.Point(1053, 0);
             this.label_ConfThreshold.Name = "label_ConfThreshold";
             this.label_ConfThreshold.Size = new System.Drawing.Size(30, 30);
             this.label_ConfThreshold.TabIndex = 10;
@@ -369,7 +351,7 @@
             // button_Save
             // 
             this.button_Save.Dock = System.Windows.Forms.DockStyle.Right;
-            this.button_Save.Location = new System.Drawing.Point(954, 0);
+            this.button_Save.Location = new System.Drawing.Point(1083, 0);
             this.button_Save.Name = "button_Save";
             this.button_Save.Size = new System.Drawing.Size(63, 30);
             this.button_Save.TabIndex = 8;
@@ -456,7 +438,7 @@
             // button_OpenMovieFile
             // 
             this.button_OpenMovieFile.Dock = System.Windows.Forms.DockStyle.Right;
-            this.button_OpenMovieFile.Location = new System.Drawing.Point(1017, 0);
+            this.button_OpenMovieFile.Location = new System.Drawing.Point(1146, 0);
             this.button_OpenMovieFile.Name = "button_OpenMovieFile";
             this.button_OpenMovieFile.Size = new System.Drawing.Size(63, 30);
             this.button_OpenMovieFile.TabIndex = 0;
@@ -469,49 +451,90 @@
             this.trackBar_frameIndex.Dock = System.Windows.Forms.DockStyle.Top;
             this.trackBar_frameIndex.Location = new System.Drawing.Point(0, 0);
             this.trackBar_frameIndex.Name = "trackBar_frameIndex";
-            this.trackBar_frameIndex.Size = new System.Drawing.Size(1080, 45);
+            this.trackBar_frameIndex.Size = new System.Drawing.Size(1209, 45);
             this.trackBar_frameIndex.TabIndex = 0;
             this.trackBar_frameIndex.ValueChanged += new System.EventHandler(this.trackBar_frameIndex_ValueChanged);
             // 
             // panel_YOLOPOSE_TOP
             // 
-            this.panel_YOLOPOSE_TOP.Controls.Add(this.textBox_modelFilePath);
-            this.panel_YOLOPOSE_TOP.Controls.Add(this.button_OpenModelFile);
+            this.panel_YOLOPOSE_TOP.Controls.Add(this.panel_topDirectoryPath);
+            this.panel_YOLOPOSE_TOP.Controls.Add(this.panel_modelPath);
             this.panel_YOLOPOSE_TOP.Dock = System.Windows.Forms.DockStyle.Top;
-            this.panel_YOLOPOSE_TOP.Location = new System.Drawing.Point(3, 15);
+            this.panel_YOLOPOSE_TOP.Location = new System.Drawing.Point(3, 3);
             this.panel_YOLOPOSE_TOP.Name = "panel_YOLOPOSE_TOP";
-            this.panel_YOLOPOSE_TOP.Size = new System.Drawing.Size(1080, 24);
+            this.panel_YOLOPOSE_TOP.Size = new System.Drawing.Size(1209, 47);
             this.panel_YOLOPOSE_TOP.TabIndex = 1;
+            // 
+            // panel_topDirectoryPath
+            // 
+            this.panel_topDirectoryPath.Controls.Add(this.textBox_topDirectoryPath);
+            this.panel_topDirectoryPath.Controls.Add(this.label6);
+            this.panel_topDirectoryPath.Dock = System.Windows.Forms.DockStyle.Top;
+            this.panel_topDirectoryPath.Location = new System.Drawing.Point(0, 22);
+            this.panel_topDirectoryPath.Name = "panel_topDirectoryPath";
+            this.panel_topDirectoryPath.Size = new System.Drawing.Size(1209, 22);
+            this.panel_topDirectoryPath.TabIndex = 5;
+            // 
+            // textBox_topDirectoryPath
+            // 
+            this.textBox_topDirectoryPath.Dock = System.Windows.Forms.DockStyle.Top;
+            this.textBox_topDirectoryPath.Location = new System.Drawing.Point(101, 0);
+            this.textBox_topDirectoryPath.Name = "textBox_topDirectoryPath";
+            this.textBox_topDirectoryPath.Size = new System.Drawing.Size(1108, 19);
+            this.textBox_topDirectoryPath.TabIndex = 2;
+            // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.Dock = System.Windows.Forms.DockStyle.Left;
+            this.label6.Location = new System.Drawing.Point(0, 0);
+            this.label6.Name = "label6";
+            this.label6.Padding = new System.Windows.Forms.Padding(0, 0, 10, 0);
+            this.label6.Size = new System.Drawing.Size(101, 12);
+            this.label6.TabIndex = 3;
+            this.label6.Text = "topDirectoryPath";
+            // 
+            // panel_modelPath
+            // 
+            this.panel_modelPath.Controls.Add(this.textBox_modelFilePath);
+            this.panel_modelPath.Controls.Add(this.label_modelPath);
+            this.panel_modelPath.Controls.Add(this.button_OpenModelFile);
+            this.panel_modelPath.Dock = System.Windows.Forms.DockStyle.Top;
+            this.panel_modelPath.Location = new System.Drawing.Point(0, 0);
+            this.panel_modelPath.Name = "panel_modelPath";
+            this.panel_modelPath.Size = new System.Drawing.Size(1209, 22);
+            this.panel_modelPath.TabIndex = 4;
             // 
             // textBox_modelFilePath
             // 
             this.textBox_modelFilePath.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.textBox_modelFilePath.Location = new System.Drawing.Point(0, 0);
+            this.textBox_modelFilePath.Location = new System.Drawing.Point(68, 0);
             this.textBox_modelFilePath.Name = "textBox_modelFilePath";
-            this.textBox_modelFilePath.Size = new System.Drawing.Size(1048, 19);
+            this.textBox_modelFilePath.Size = new System.Drawing.Size(1109, 19);
             this.textBox_modelFilePath.TabIndex = 1;
             this.textBox_modelFilePath.TextChanged += new System.EventHandler(this.textBox_modelFilePath_TextChanged);
-            // 
-            // button_OpenModelFile
-            // 
-            this.button_OpenModelFile.Dock = System.Windows.Forms.DockStyle.Right;
-            this.button_OpenModelFile.Location = new System.Drawing.Point(1048, 0);
-            this.button_OpenModelFile.Name = "button_OpenModelFile";
-            this.button_OpenModelFile.Size = new System.Drawing.Size(32, 24);
-            this.button_OpenModelFile.TabIndex = 0;
-            this.button_OpenModelFile.Text = "...";
-            this.button_OpenModelFile.UseVisualStyleBackColor = true;
-            this.button_OpenModelFile.Click += new System.EventHandler(this.button_OpenModelFile_Click);
             // 
             // label_modelPath
             // 
             this.label_modelPath.AutoSize = true;
-            this.label_modelPath.Dock = System.Windows.Forms.DockStyle.Top;
-            this.label_modelPath.Location = new System.Drawing.Point(3, 3);
+            this.label_modelPath.Dock = System.Windows.Forms.DockStyle.Left;
+            this.label_modelPath.Location = new System.Drawing.Point(0, 0);
             this.label_modelPath.Name = "label_modelPath";
-            this.label_modelPath.Size = new System.Drawing.Size(58, 12);
+            this.label_modelPath.Padding = new System.Windows.Forms.Padding(0, 0, 10, 0);
+            this.label_modelPath.Size = new System.Drawing.Size(68, 12);
             this.label_modelPath.TabIndex = 0;
             this.label_modelPath.Text = "modelPath";
+            // 
+            // button_OpenModelFile
+            // 
+            this.button_OpenModelFile.Dock = System.Windows.Forms.DockStyle.Right;
+            this.button_OpenModelFile.Location = new System.Drawing.Point(1177, 0);
+            this.button_OpenModelFile.Name = "button_OpenModelFile";
+            this.button_OpenModelFile.Size = new System.Drawing.Size(32, 22);
+            this.button_OpenModelFile.TabIndex = 0;
+            this.button_OpenModelFile.Text = "...";
+            this.button_OpenModelFile.UseVisualStyleBackColor = true;
+            this.button_OpenModelFile.Click += new System.EventHandler(this.button_OpenModelFile_Click);
             // 
             // tabPage2
             // 
@@ -643,11 +666,41 @@
             this.timer1.Interval = 1000;
             this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
             // 
+            // Column_Checked
+            // 
+            this.Column_Checked.HeaderText = "";
+            this.Column_Checked.Name = "Column_Checked";
+            this.Column_Checked.Width = 24;
+            // 
+            // Filename
+            // 
+            this.Filename.HeaderText = "File";
+            this.Filename.Name = "Filename";
+            this.Filename.Width = 70;
+            // 
+            // Column_Frame
+            // 
+            this.Column_Frame.HeaderText = "Frame";
+            this.Column_Frame.Name = "Column_Frame";
+            this.Column_Frame.Width = 60;
+            // 
+            // Column_FrameContents
+            // 
+            this.Column_FrameContents.HeaderText = "FrameContents";
+            this.Column_FrameContents.Name = "Column_FrameContents";
+            this.Column_FrameContents.Visible = false;
+            // 
+            // Column_Label
+            // 
+            this.Column_Label.HeaderText = "Label";
+            this.Column_Label.Name = "Column_Label";
+            this.Column_Label.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.Automatic;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1094, 821);
+            this.ClientSize = new System.Drawing.Size(1223, 821);
             this.Controls.Add(this.tabControl1);
             this.Name = "Form1";
             this.Text = "ONNX";
@@ -655,7 +708,6 @@
             this.Load += new System.EventHandler(this.Form1_Load);
             this.tabControl1.ResumeLayout(false);
             this.tabPage_YOLOPOSE.ResumeLayout(false);
-            this.tabPage_YOLOPOSE.PerformLayout();
             this.panel_Main.ResumeLayout(false);
             this.splitContainer1.Panel1.ResumeLayout(false);
             this.splitContainer1.Panel1.PerformLayout();
@@ -674,7 +726,10 @@
             ((System.ComponentModel.ISupportInitialize)(this.trackBar_Conf)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar_frameIndex)).EndInit();
             this.panel_YOLOPOSE_TOP.ResumeLayout(false);
-            this.panel_YOLOPOSE_TOP.PerformLayout();
+            this.panel_topDirectoryPath.ResumeLayout(false);
+            this.panel_topDirectoryPath.PerformLayout();
+            this.panel_modelPath.ResumeLayout(false);
+            this.panel_modelPath.PerformLayout();
             this.tabPage2.ResumeLayout(false);
             this.tabPage2.PerformLayout();
             this.ResumeLayout(false);
@@ -729,7 +784,12 @@
         private System.Windows.Forms.Panel panel_Left;
         private System.Windows.Forms.TextBox textBox_PoseInfo;
         private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.Panel panel_topDirectoryPath;
+        private System.Windows.Forms.TextBox textBox_topDirectoryPath;
+        private System.Windows.Forms.Label label6;
+        private System.Windows.Forms.Panel panel_modelPath;
         private System.Windows.Forms.DataGridViewCheckBoxColumn Column_Checked;
+        private System.Windows.Forms.DataGridViewTextBoxColumn Filename;
         private System.Windows.Forms.DataGridViewTextBoxColumn Column_Frame;
         private System.Windows.Forms.DataGridViewTextBoxColumn Column_FrameContents;
         private System.Windows.Forms.DataGridViewComboBoxColumn Column_Label;
