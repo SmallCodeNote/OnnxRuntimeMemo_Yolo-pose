@@ -100,21 +100,37 @@ namespace onnxNote
             OpenFileDialog ofd = new OpenFileDialog();
             ofd.Filter = "PNG|*.png|MP4|*.mp4";
             ofd.FilterIndex = 2;
-
             if (ofd.ShowDialog() != DialogResult.OK) return;
-            if (capture != null) capture.Dispose();
 
-            string ext = Path.GetExtension(ofd.FileName);
-            if (ext == ".mp4")
+            yoloPoseModelHandle.SetOverlapThreshold((float)numericUpDown_bboxOverlapTh.Value, (float)numericUpDown_tolsoOverlapTh.Value, (float)numericUpDown_shoulderOverlapTh.Value);
+            OpenMovieFile(ofd.FileName);
+        }
+
+        private void OpenMovieFile(string filePath)
+        {
+            if (this.InvokeRequired)
             {
-                targetFilename = Path.GetFileNameWithoutExtension(ofd.FileName);
-                capture = new VideoCapture(ofd.FileName);
-                trackBar_frameIndex.Maximum = capture.FrameCount;
-                trackBar_frameIndex.Value = 0;
+                this.Invoke((Action)(() =>
+                {
+                    OpenMovieFile(filePath);
+                }));
             }
             else
             {
-                pictureBoxUpdate(pictureBox, new Bitmap(ofd.FileName));
+                if (capture != null) capture.Dispose();
+
+                string ext = Path.GetExtension(filePath);
+                if (ext == ".mp4")
+                {
+                    targetFilename = Path.GetFileNameWithoutExtension(filePath);
+                    capture = new VideoCapture(filePath);
+                    trackBar_frameIndex.Maximum = capture.FrameCount;
+                    trackBar_frameIndex.Value = 0;
+                }
+                else
+                {
+                    pictureBoxUpdate(pictureBox, new Bitmap(filePath));
+                }
             }
         }
 
@@ -165,6 +181,8 @@ namespace onnxNote
                     capture.PosFrames = trackBar_frameIndex.Value > 0 ? trackBar_frameIndex.Value - 1 : 0;
 
                     Bitmap bitmap = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(frame);
+
+                    yoloPoseModelHandle.SetOverlapThreshold((float)numericUpDown_bboxOverlapTh.Value, (float)numericUpDown_tolsoOverlapTh.Value, (float)numericUpDown_shoulderOverlapTh.Value);
                     List<PoseInfo> poseInfos = yoloPoseModelHandle.Predict(bitmap);
                     drawPose(bitmap, poseInfos);
 
@@ -211,19 +229,32 @@ namespace onnxNote
             {
                 int deviceID = comboBox_DeviceID.SelectedIndex - 1;
                 yoloPoseModelHandle = new YoloPoseModelHandle(textBox_modelFilePath.Text, deviceID);
+                yoloPoseModelHandle.SetOverlapThreshold((float)numericUpDown_bboxOverlapTh.Value, (float)numericUpDown_tolsoOverlapTh.Value, (float)numericUpDown_shoulderOverlapTh.Value);
+
             }
         }
 
         private void pictureBox_Click(object sender, EventArgs e)
         {
-            SaveFileDialog sfd = new SaveFileDialog();
-            sfd.Filter = "PNG|*.png";
-
-            if (sfd.ShowDialog() != DialogResult.OK) return;
-
-            using (Bitmap b = new Bitmap(pictureBox.Image))
+            if ((Control.ModifierKeys & Keys.Control) == Keys.Control)
             {
-                b.Save(sfd.FileName);
+                using (Bitmap b = new Bitmap(pictureBox.Image))
+                {
+                    Clipboard.SetImage(b);
+                }
+            }
+            else
+            {
+
+                SaveFileDialog sfd = new SaveFileDialog();
+                sfd.Filter = "PNG|*.png";
+
+                if (sfd.ShowDialog() != DialogResult.OK) return;
+
+                using (Bitmap b = new Bitmap(pictureBox.Image))
+                {
+                    b.Save(sfd.FileName);
+                }
             }
         }
 
@@ -269,6 +300,9 @@ namespace onnxNote
 
                 button_Save.Text = "Cancel";
                 timer1.Start();
+
+                yoloPoseModelHandle.SetOverlapThreshold((float)numericUpDown_bboxOverlapTh.Value, (float)numericUpDown_tolsoOverlapTh.Value, (float)numericUpDown_shoulderOverlapTh.Value);
+
                 backgroundWorker_posePredict.RunWorkerAsync();
 
             }
@@ -1055,8 +1089,8 @@ namespace onnxNote
                 string[] poseLine = row.Cells[3].Value?.ToString()?.Split(',') ?? Array.Empty<string>();
                 if (poseLine.Length <= 2) return;
 
-                int cx = (int)double.Parse(poseLine[2]);
-                int cy = (int)double.Parse(poseLine[3]);
+                int cx = (int)double.Parse(poseLine[0]);
+                int cy = (int)double.Parse(poseLine[1]);
                 int r = 8;
 
                 g.FillEllipse(Brushes.LightGreen, cx - r, cy - r, r * 2, r * 2);
@@ -1142,6 +1176,16 @@ namespace onnxNote
 
         private void dataGridView_PoseLines_RowEnter(object sender, DataGridViewCellEventArgs e)
         {
+            if (capture == null&& dataGridView_PoseLines.SelectedRows.Count>0)
+            {
+                string filename = dataGridView_PoseLines.SelectedRows[0].Cells[1].Value.ToString();
+                string filePath = Path.Combine(textBox_topDirectoryPath.Text, filename);
+
+                if (Path.GetExtension(filePath) != ".mp4") { filePath += ".mp4"; }
+
+                if (File.Exists(filePath)) OpenMovieFile(filePath);
+            }
+
             if (capture != null)
             {
                 if (dataGridView_PoseLines.SelectedRows.Count < 1) return;
@@ -1164,8 +1208,6 @@ namespace onnxNote
 
             }
         }
-
-
 
         private void button_SaveFrameChecked_Click(object sender, EventArgs e)
         {
@@ -1391,6 +1433,72 @@ namespace onnxNote
             if (ofd.ShowDialog() == DialogResult.OK)
             {
                 WinFormStringCnv.setControlFromString(this, File.ReadAllText(ofd.FileName));
+            }
+        }
+
+        private void numericUpDown_bboxOverlapTh_ValueChanged(object sender, EventArgs e)
+        {
+            if (yoloPoseModelHandle == null) return;
+            yoloPoseModelHandle.OverlapBBoxThreshold = (float)numericUpDown_bboxOverlapTh.Value;
+            trackBar_frameIndex_ValueChanged(null, null);
+        }
+
+        private void numericUpDown_tolsoOverlapTh_ValueChanged(object sender, EventArgs e)
+        {
+            if (yoloPoseModelHandle == null) return;
+            yoloPoseModelHandle.OverlapTolsoThreshold = (float)numericUpDown_tolsoOverlapTh.Value;
+            trackBar_frameIndex_ValueChanged(null, null);
+        }
+
+        private void numericUpDown_shoulderOverlapTh_ValueChanged(object sender, EventArgs e)
+        {
+            if (yoloPoseModelHandle == null) return;
+            yoloPoseModelHandle.OverlapShoulderThreshold = (float)numericUpDown_shoulderOverlapTh.Value;
+            trackBar_frameIndex_ValueChanged(null, null);
+        }
+
+        private void button_SwitchOverLapBbox_Click(object sender, EventArgs e)
+        {
+            numericUpDown_bboxOverlapTh.Value *= -1;
+        }
+
+        private void button_SwitchOverLapTolso_Click(object sender, EventArgs e)
+        {
+            numericUpDown_tolsoOverlapTh.Value *= -1;
+        }
+
+        private void button_SwitchOverLapShoulder_Click(object sender, EventArgs e)
+        {
+            numericUpDown_shoulderOverlapTh.Value *= -1;
+        }
+
+        private bool suppressMouseEnter = false;
+        private void dataGridView_PoseLines_CellMouseEnter(object sender, DataGridViewCellEventArgs e)
+        {
+            if (suppressMouseEnter) return;
+
+            if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
+            {
+                var dgv = sender as DataGridView;
+
+                if (dgv.CurrentCell != dgv.Rows[e.RowIndex].Cells[e.ColumnIndex])
+                {
+                    var column = dgv.Columns[e.ColumnIndex];
+
+                    if (column is DataGridViewComboBoxColumn)
+                    {
+                        try
+                        {
+                            suppressMouseEnter = true;
+                            dgv.CurrentCell = dgv.Rows[e.RowIndex].Cells[e.ColumnIndex];
+                            dgv.BeginEdit(true);
+                        }
+                        finally
+                        {
+                            suppressMouseEnter = false;
+                        }
+                    }
+                }
             }
         }
     }

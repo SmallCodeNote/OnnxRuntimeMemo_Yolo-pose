@@ -80,7 +80,7 @@ namespace YoloPoseOnnxHandle
             return false;
         }
 
-        public List<PoseInfo> Predict(Bitmap bitmap, float overlapThreshold = 0.8f, float confidenceThreshold = -1.0f)
+        public List<PoseInfo> Predict(Bitmap bitmap, float confidenceThreshold = -1.0f)
         {
             if (confidenceThreshold < 0) { confidenceThreshold = ConfidenceThreshold; }
             ImageTensor = ConvertBitmapToTensor(bitmap);
@@ -90,10 +90,10 @@ namespace YoloPoseOnnxHandle
             var output = results.First().AsEnumerable<float>().ToArray();
             results.Dispose();
 
-            return PoseInfoRead(output,overlapThreshold, confidenceThreshold);
+            return PoseInfoRead(output, confidenceThreshold);
         }
 
-        public List<PoseInfo> Predict(Tensor<float> ImageTensor, float overlapThreshold = 0.8f, float confidenceThreshold = -1.0f)
+        public List<PoseInfo> Predict(Tensor<float> ImageTensor, float confidenceThreshold = -1.0f)
         {
             var inputs = new List<NamedOnnxValue> { NamedOnnxValue.CreateFromTensor(SessionInputName, ImageTensor) };
             var results = session.Run(inputs);
@@ -101,7 +101,7 @@ namespace YoloPoseOnnxHandle
             results.Dispose();
 
             if (confidenceThreshold < 0) { confidenceThreshold = ConfidenceThreshold; }
-            return PoseInfoRead(output,overlapThreshold, confidenceThreshold);
+            return PoseInfoRead(output, confidenceThreshold);
         }
 
         public float[] PredictOutput(Tensor<float> ImageTensor, float confidenceThreshold = -1.0f)
@@ -225,13 +225,26 @@ namespace YoloPoseOnnxHandle
             return SessionInputName;
         }
 
-        public List<PoseInfo> PoseInfoRead(IDisposableReadOnlyCollection<DisposableNamedOnnxValue> results, float overlapThreshold = 0.8f, float confidenceThreshold = -1.0f)
+        public List<PoseInfo> PoseInfoRead(IDisposableReadOnlyCollection<DisposableNamedOnnxValue> results, float confidenceThreshold = -1.0f)
         {
             float[] outputArray = results.First().AsEnumerable<float>().ToArray();
-            return PoseInfoRead(outputArray,overlapThreshold,confidenceThreshold);
+            return PoseInfoRead(outputArray, confidenceThreshold);
         }
 
-        public List<PoseInfo> PoseInfoRead(float[] outputArray, float overlapThreshold = 0.8f, float confidenceThreshold = -1.0f)
+
+        public float OverlapBBoxThreshold = 0.8f;
+        public float OverlapTolsoThreshold = 0.8f;
+        public float OverlapShoulderThreshold = 0.8f;
+
+        public void SetOverlapThreshold(float OverlapBBoxThreshold, float OverlapTolsoThreshold, float OverlapShoulderThreshold)
+        {
+            this.OverlapBBoxThreshold = OverlapBBoxThreshold;
+            this.OverlapTolsoThreshold = OverlapTolsoThreshold;
+            this.OverlapShoulderThreshold = OverlapShoulderThreshold;
+        }
+
+
+        public List<PoseInfo> PoseInfoRead(float[] outputArray, float confidenceThreshold = -1.0f)
         {
             if (confidenceThreshold < 0) { confidenceThreshold = ConfidenceThreshold; }
             List<PoseInfo> PoseInfos = new List<PoseInfo>();
@@ -247,7 +260,12 @@ namespace YoloPoseOnnxHandle
                         for (int index = 0; index < PoseInfos.Count; index++)
                         {
                             var item = PoseInfos[index];
-                            if (item.Overlap(pi) >= overlapThreshold)
+
+                            bool flag_OverlapBBox = item.OverlapBbox(pi) >= OverlapBBoxThreshold && OverlapBBoxThreshold >= 0;
+                            bool flag_OverlapTolso = item.OverlapTolso(pi) >= OverlapTolsoThreshold && OverlapTolsoThreshold >= 0;
+                            bool flag_OverlapShoulder = item.OverlapShoulder(pi) >= OverlapShoulderThreshold && OverlapShoulderThreshold >= 0;
+
+                            if (flag_OverlapBBox || flag_OverlapTolso || flag_OverlapShoulder)
                             {
                                 item.Merge(pi);
                                 update = true;
@@ -262,6 +280,7 @@ namespace YoloPoseOnnxHandle
                     }
                 }
             }
+
             this.PoseInfos = PoseInfos;
             return PoseInfos;
         }
@@ -401,12 +420,25 @@ namespace YoloPoseOnnxHandle
             return result;
         }
 
+        public float OverlapBbox(PoseInfo poseInfo)
+        {
+            return this.Bbox.Overlap(poseInfo.Bbox);
+        }
+
+        public float OverlapTolso(PoseInfo poseInfo)
+        {
+            return this.KeyPoints.OverlapTolso(poseInfo.KeyPoints);
+        }
+
+        public float OverlapShoulder(PoseInfo poseInfo)
+        {
+            return this.KeyPoints.OverlapUpperBody(poseInfo.KeyPoints);
+        }
 
         public void Merge(PoseInfo poseInfo)
         {
             this.KeyPoints.Merge(poseInfo.KeyPoints);
             this.Bbox.Merge(poseInfo.Bbox);
-
         }
 
     }
@@ -873,8 +905,59 @@ namespace YoloPoseOnnxHandle
                    $"{AnkleLeft.Confidence:0.00}, {AnkleRight.Confidence:0.00}";
         }
 
-        public static List<KeyPoint> ClipPolygon(List<KeyPoint> subject, List<KeyPoint> clip)
+
+        public static List<KeyPoint> SortClockwise(List<KeyPoint> points)
         {
+            
+            float centerX = 0, centerY = 0;
+            foreach (var pt in points)
+            {
+                centerX += pt.X;
+                centerY += pt.Y;
+            }
+            centerX /= points.Count;
+            centerY /= points.Count;
+
+            
+            points.Sort((a, b) =>
+            {
+                double angleA = Math.Atan2(a.Y - centerY, a.X - centerX);
+                double angleB = Math.Atan2(b.Y - centerY, b.X - centerX);
+                return angleB.CompareTo(angleA); 
+            });
+
+            return points;
+        }
+
+        public static List<KeyPoint> SortCounterClockwise(List<KeyPoint> points)
+        {
+            
+            float centerX = 0, centerY = 0;
+            foreach (var pt in points)
+            {
+                centerX += pt.X;
+                centerY += pt.Y;
+            }
+            centerX /= points.Count;
+            centerY /= points.Count;
+
+            
+            points.Sort((a, b) =>
+            {
+                double angleA = Math.Atan2(a.Y - centerY, a.X - centerX);
+                double angleB = Math.Atan2(b.Y - centerY, b.X - centerX);
+                return angleA.CompareTo(angleB); 
+            });
+
+            return points;
+        }
+
+        public static List<KeyPoint> ClipPolygon(List<KeyPoint> subjectSrc, List<KeyPoint> clipSrc)
+        {
+            List<KeyPoint> subject = SortCounterClockwise(subjectSrc);
+            List<KeyPoint> clip = SortCounterClockwise(clipSrc);
+
+
             List<KeyPoint> output = new List<KeyPoint>(subject);
 
             for (int i = 0; i < clip.Count; i++)
@@ -883,12 +966,14 @@ namespace YoloPoseOnnxHandle
                 output.Clear();
 
                 KeyPoint A = clip[i];
-                KeyPoint B = clip[(i + 1) % clip.Count];
+                int K = (i + 1) % clip.Count;
+                KeyPoint B = clip[K];
 
                 for (int j = 0; j < input.Count; j++)
                 {
                     KeyPoint P = input[j];
-                    KeyPoint Q = input[(j + 1) % input.Count];
+                    int L = (j + 1) % input.Count;
+                    KeyPoint Q = input[L];
 
                     bool insideP = IsInside(A, B, P);
                     bool insideQ = IsInside(A, B, Q);
@@ -911,6 +996,7 @@ namespace YoloPoseOnnxHandle
 
             return output;
         }
+
 
         private static bool IsInside(KeyPoint A, KeyPoint B, KeyPoint P)
         {
@@ -966,6 +1052,19 @@ namespace YoloPoseOnnxHandle
 
             float unionArea = area1 + area2 - intersectionArea;
             float result = unionArea > 0f ? intersectionArea / unionArea : 0;
+
+            string Lines = "";
+
+            foreach (var item in poly1)
+            {
+                Lines += item.ToString().Replace(",","\t") + "\r\n";
+            }
+
+            foreach (var item in poly2)
+            {
+                Lines += item.ToString().Replace(",", "\t") + "\r\n";
+            }
+
 
             return result;
         }
@@ -1083,6 +1182,8 @@ namespace YoloPoseOnnxHandle
         {
             if (this.X == 0) { this.X = keyPoint.X; }
             if (this.Y == 0) { this.Y = keyPoint.Y; }
+            if (this.X != 0 && keyPoint.X != 0) { this.X = (this.X + keyPoint.X) * 0.5f; }
+            if (this.Y != 0 && keyPoint.Y != 0) { this.Y = (this.Y + keyPoint.Y) * 0.5f; }
         }
     }
 
