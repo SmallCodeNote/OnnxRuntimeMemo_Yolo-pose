@@ -45,6 +45,7 @@
             this.button_CopyFromTop = new System.Windows.Forms.Button();
             this.button_UnCheck = new System.Windows.Forms.Button();
             this.button_Check = new System.Windows.Forms.Button();
+            this.panel11 = new System.Windows.Forms.Panel();
             this.button_sortPoseInfoBBox = new System.Windows.Forms.Button();
             this.button_LoadPoseInfo = new System.Windows.Forms.Button();
             this.button_SaveFrameChecked = new System.Windows.Forms.Button();
@@ -197,6 +198,7 @@
             this.splitContainer1.Panel2.Controls.Add(this.dataGridView_PoseLines);
             this.splitContainer1.Panel2.Controls.Add(this.panel9);
             this.splitContainer1.Panel2.Controls.Add(this.panel2);
+            this.splitContainer1.Panel2.Controls.Add(this.panel11);
             this.splitContainer1.Panel2.Controls.Add(this.button_sortPoseInfoBBox);
             this.splitContainer1.Panel2.Controls.Add(this.button_LoadPoseInfo);
             this.splitContainer1.Panel2.Controls.Add(this.button_SaveFrameChecked);
@@ -216,6 +218,7 @@
             // 
             // dataGridView_PoseLines
             // 
+            this.dataGridView_PoseLines.AllowDrop = true;
             this.dataGridView_PoseLines.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
             this.dataGridView_PoseLines.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
             this.Column_Checked,
@@ -224,16 +227,19 @@
             this.Column_FrameContents,
             this.Column_Label});
             this.dataGridView_PoseLines.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.dataGridView_PoseLines.Location = new System.Drawing.Point(0, 69);
+            this.dataGridView_PoseLines.Location = new System.Drawing.Point(0, 82);
             this.dataGridView_PoseLines.Name = "dataGridView_PoseLines";
             this.dataGridView_PoseLines.RowHeadersWidth = 26;
             this.dataGridView_PoseLines.RowTemplate.Height = 21;
-            this.dataGridView_PoseLines.Size = new System.Drawing.Size(308, 508);
+            this.dataGridView_PoseLines.Size = new System.Drawing.Size(308, 495);
             this.dataGridView_PoseLines.TabIndex = 0;
             this.dataGridView_PoseLines.CellMouseEnter += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView_PoseLines_CellMouseEnter);
             this.dataGridView_PoseLines.CellValidating += new System.Windows.Forms.DataGridViewCellValidatingEventHandler(this.dataGridView_PoseLines_CellValidating);
+            this.dataGridView_PoseLines.CellValueChanged += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView_PoseLines_CellValueChanged);
             this.dataGridView_PoseLines.CurrentCellChanged += new System.EventHandler(this.dataGridView_PoseLines_CurrentCellChanged);
             this.dataGridView_PoseLines.RowEnter += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView_PoseLines_RowEnter);
+            this.dataGridView_PoseLines.DragDrop += new System.Windows.Forms.DragEventHandler(this.dataGridView_PoseLines_DragDrop);
+            this.dataGridView_PoseLines.DragEnter += new System.Windows.Forms.DragEventHandler(this.dataGridView_PoseLines_DragEnter);
             // 
             // Column_Checked
             // 
@@ -321,36 +327,50 @@
             this.button_Check.UseVisualStyleBackColor = true;
             this.button_Check.Click += new System.EventHandler(this.button_Check_Click);
             // 
+            // panel11
+            // 
+            this.panel11.Dock = System.Windows.Forms.DockStyle.Top;
+            this.panel11.Location = new System.Drawing.Point(0, 69);
+            this.panel11.Name = "panel11";
+            this.panel11.Size = new System.Drawing.Size(308, 13);
+            this.panel11.TabIndex = 5;
+            // 
             // button_sortPoseInfoBBox
             // 
             this.button_sortPoseInfoBBox.Dock = System.Windows.Forms.DockStyle.Top;
+            this.button_sortPoseInfoBBox.Font = new System.Drawing.Font("MS UI Gothic", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.button_sortPoseInfoBBox.Location = new System.Drawing.Point(0, 46);
             this.button_sortPoseInfoBBox.Name = "button_sortPoseInfoBBox";
             this.button_sortPoseInfoBBox.Size = new System.Drawing.Size(308, 23);
             this.button_sortPoseInfoBBox.TabIndex = 4;
-            this.button_sortPoseInfoBBox.Text = "sortPoseInfoBBox";
+            this.button_sortPoseInfoBBox.Text = "🖼🖼 sortPoseInfoBBox";
+            this.button_sortPoseInfoBBox.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.button_sortPoseInfoBBox.UseVisualStyleBackColor = true;
             this.button_sortPoseInfoBBox.Click += new System.EventHandler(this.button_sortPoseInfoBBox_Click);
             // 
             // button_LoadPoseInfo
             // 
             this.button_LoadPoseInfo.Dock = System.Windows.Forms.DockStyle.Top;
+            this.button_LoadPoseInfo.Font = new System.Drawing.Font("MS UI Gothic", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.button_LoadPoseInfo.Location = new System.Drawing.Point(0, 23);
             this.button_LoadPoseInfo.Name = "button_LoadPoseInfo";
             this.button_LoadPoseInfo.Size = new System.Drawing.Size(308, 23);
             this.button_LoadPoseInfo.TabIndex = 2;
-            this.button_LoadPoseInfo.Text = "LoadPoseInfo";
+            this.button_LoadPoseInfo.Text = "📂📄 LoadPoseInfo";
+            this.button_LoadPoseInfo.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.button_LoadPoseInfo.UseVisualStyleBackColor = true;
             this.button_LoadPoseInfo.Click += new System.EventHandler(this.button_LoadPoseInfo_Click);
             // 
             // button_SaveFrameChecked
             // 
             this.button_SaveFrameChecked.Dock = System.Windows.Forms.DockStyle.Top;
+            this.button_SaveFrameChecked.Font = new System.Drawing.Font("MS UI Gothic", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
             this.button_SaveFrameChecked.Location = new System.Drawing.Point(0, 0);
             this.button_SaveFrameChecked.Name = "button_SaveFrameChecked";
             this.button_SaveFrameChecked.Size = new System.Drawing.Size(308, 23);
             this.button_SaveFrameChecked.TabIndex = 1;
-            this.button_SaveFrameChecked.Text = "SaveFrameChecked";
+            this.button_SaveFrameChecked.Text = "📄🖊 SaveFrameChecked";
+            this.button_SaveFrameChecked.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.button_SaveFrameChecked.UseVisualStyleBackColor = true;
             this.button_SaveFrameChecked.Click += new System.EventHandler(this.button_SaveFrameChecked_Click);
             // 
@@ -836,6 +856,7 @@
             this.trackBar_frameIndex.Name = "trackBar_frameIndex";
             this.trackBar_frameIndex.Size = new System.Drawing.Size(1209, 45);
             this.trackBar_frameIndex.TabIndex = 0;
+            this.trackBar_frameIndex.Scroll += new System.EventHandler(this.trackBar_frameIndex_Scroll);
             this.trackBar_frameIndex.ValueChanged += new System.EventHandler(this.trackBar_frameIndex_ValueChanged);
             // 
             // panel_YOLOPOSE_TOP
@@ -1219,6 +1240,7 @@
         private System.Windows.Forms.TextBox textBox_sortDirectoryPath;
         private System.Windows.Forms.Label label10;
         private System.Windows.Forms.Button button_sortPoseInfoBBox;
+        private System.Windows.Forms.Panel panel11;
     }
 }
 

@@ -134,6 +134,40 @@ namespace onnxNote
             }
         }
 
+        private void trackBar_frameIndex_ValueChanged(object sender, EventArgs e)
+        {
+            drawFrame();
+        }
+
+        List<PoseInfo> LastPoseInfos;
+        private void drawFrame()
+        {
+            if (this.InvokeRequired) { this.Invoke((Action)(() => { drawFrame(); })); }
+            else
+            {
+                if (capture != null)
+                {
+                    using (Mat frame = new Mat())
+                    {
+                        capture.PosFrames = trackBar_frameIndex.Value > 0 ? trackBar_frameIndex.Value - 1 : 0;
+
+                        if (capture.IsDisposed || !capture.Read(frame) || frame.Empty()) return;
+
+                        Bitmap bitmap = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(frame);
+
+                        yoloPoseModelHandle.SetOverlapThreshold((float)numericUpDown_bboxOverlapTh.Value, (float)numericUpDown_tolsoOverlapTh.Value, (float)numericUpDown_shoulderOverlapTh.Value);
+                        LastPoseInfos = yoloPoseModelHandle.Predict(bitmap);
+                        drawPose(bitmap, LastPoseInfos);
+
+                        pictureBoxUpdate(pictureBox, bitmap);
+
+                    }
+
+                    label_FrameCount.Text = trackBar_frameIndex.Value.ToString() + " / " + capture.FrameCount.ToString();
+                }
+            }
+        }
+
         private void trackBar_frameIndex_Scroll(object sender, EventArgs e)
         {
             if (capture != null)
@@ -186,40 +220,6 @@ namespace onnxNote
 
             trackBar_frameIndex.Value = nextValue;
 
-        }
-
-        private void trackBar_frameIndex_ValueChanged(object sender, EventArgs e)
-        {
-            drawFrame();
-
-        }
-
-        private void drawFrame()
-        {
-            if (this.InvokeRequired) { this.Invoke((Action)(() => { drawFrame(); })); }
-            else
-            {
-                if (capture != null)
-                {
-                    using (Mat frame = new Mat())
-                    {
-                        capture.PosFrames = trackBar_frameIndex.Value > 0 ? trackBar_frameIndex.Value - 1 : 0;
-
-                        if (capture.IsDisposed || !capture.Read(frame) || frame.Empty()) return;
-
-                        Bitmap bitmap = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(frame);
-
-                        yoloPoseModelHandle.SetOverlapThreshold((float)numericUpDown_bboxOverlapTh.Value, (float)numericUpDown_tolsoOverlapTh.Value, (float)numericUpDown_shoulderOverlapTh.Value);
-                        List<PoseInfo> poseInfos = yoloPoseModelHandle.Predict(bitmap);
-                        drawPose(bitmap, poseInfos);
-
-                        pictureBoxUpdate(pictureBox, bitmap);
-
-                    }
-
-                    label_FrameCount.Text = trackBar_frameIndex.Value.ToString() + " / " + capture.FrameCount.ToString();
-                }
-            }
         }
 
 
@@ -1156,7 +1156,7 @@ namespace onnxNote
             if (yoloPoseModelHandle != null)
             {
                 yoloPoseModelHandle.ConfidenceThreshold = (float)(trackBar_Conf.Value / 100f);
-                trackBar_frameIndex_ValueChanged(null, null);
+                drawFrame();
 
             }
         }
@@ -1187,6 +1187,8 @@ namespace onnxNote
 
             string[] Lines = File.ReadAllLines(ofd.FileName);
 
+            suppress_dataGridView_PoseLines_CellValueChanged = true;
+
             dataGridView_PoseLines.Rows.Clear();
 
             List<string> LabelItems = ((DataGridViewComboBoxColumn)dataGridView_PoseLines.Columns[4]).Items.Cast<string>().ToList();
@@ -1209,47 +1211,9 @@ namespace onnxNote
                     dataGridView_PoseLines.Rows.Add(new object[] { false, targetFilenameString, frameIndexString, bodyString, label });
                 }
             }
-        }
 
-        private void dataGridView_PoseLines_RowEnter(object sender, DataGridViewCellEventArgs e)
-        {
+            suppress_dataGridView_PoseLines_CellValueChanged = false;
 
-            if (dataGridView_PoseLines.SelectedRows.Count < 1) return;
-
-            DataGridViewRow row = dataGridView_PoseLines.SelectedRows[0];
-
-            string filename = row.Cells[1].Value.ToString();
-
-            if (capture == null || targetFilename != filename)
-            {
-                string filePath = Path.Combine(textBox_topDirectoryPath.Text, filename);
-
-                if (Path.GetExtension(filePath) != ".mp4") { filePath += ".mp4"; }
-
-                if (File.Exists(filePath)) OpenMovieFile(filePath);
-                targetFilename = filename;
-            }
-
-            if (capture != null)
-            {
-
-                object value = row.Cells[2].Value;
-                if (value == null) return;
-
-                string cellvalue = value.ToString();
-
-                int newFrameIndex = int.Parse(cellvalue);
-
-                if (trackBar_frameIndex.Value != newFrameIndex)
-                {
-                    trackBar_frameIndex.Value = newFrameIndex;
-                }
-                else
-                {
-                    trackBar_frameIndex_ValueChanged(null, null);
-                }
-
-            }
         }
 
         private void button_SaveFrameChecked_Click(object sender, EventArgs e)
@@ -1334,34 +1298,6 @@ namespace onnxNote
 
         }
 
-        private void dataGridView_PoseLines_CurrentCellChanged(object sender, EventArgs e)
-        {
-            if (capture != null && dataGridView_PoseLines.Rows.Count > 0)
-            {
-                try
-                {
-                    if (dataGridView_PoseLines.SelectedCells.Count < 1
-                        || dataGridView_PoseLines.Rows[dataGridView_PoseLines.SelectedCells[0].RowIndex].Cells[2].Value == null) return;
-
-                    string cellvalue = dataGridView_PoseLines.Rows[dataGridView_PoseLines.SelectedCells[0].RowIndex].Cells[2].Value.ToString();
-
-                    int newFrameIndex = int.Parse(cellvalue);
-
-                    if (trackBar_frameIndex.Value != newFrameIndex)
-                    {
-                        trackBar_frameIndex.Value = newFrameIndex;
-                    }
-                    else
-                    {
-                        trackBar_frameIndex_ValueChanged(null, null);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"ERROR:{System.Reflection.MethodBase.GetCurrentMethod().Name} {ex.Message} {ex.StackTrace}");
-                }
-            }
-        }
 
         private void button_Check_Click(object sender, EventArgs e)
         {
@@ -1378,41 +1314,6 @@ namespace onnxNote
             {
                 if (row.Cells.Count < 3) continue;
                 row.Cells[0].Value = false;
-            }
-        }
-
-        private void dataGridView_PoseLines_CellValidating(object sender, DataGridViewCellValidatingEventArgs e)
-        {
-            if (dataGridView_PoseLines.Columns[e.ColumnIndex] is DataGridViewComboBoxColumn comboBoxColumn)
-            {
-                var comboBoxCell = dataGridView_PoseLines.Rows[e.RowIndex].Cells[e.ColumnIndex] as DataGridViewComboBoxCell;
-
-                if (comboBoxCell != null && !comboBoxColumn.Items.Contains(e.FormattedValue))
-                {
-                    comboBoxColumn.Items.Add(e.FormattedValue);
-                    comboBoxCell.Value = e.FormattedValue;
-                }
-            }
-        }
-
-        private void dataGridView_PoseLines_SortCompare(object sender, DataGridViewSortCompareEventArgs e)
-        {
-
-            if (e.Column.Name == "Column_Frame")
-            {
-                int val1, val2;
-
-                // 数値に変換して比較（変換できない場合は 0）
-                bool parsed1 = int.TryParse(e.CellValue1?.ToString(), out val1);
-                bool parsed2 = int.TryParse(e.CellValue2?.ToString(), out val2);
-
-                e.SortResult = val1.CompareTo(val2);
-
-                // 同値だったら行インデックスで比較
-                if (e.SortResult == 0)
-                    e.SortResult = e.RowIndex1.CompareTo(e.RowIndex2);
-
-                e.Handled = true;
             }
         }
 
@@ -1483,21 +1384,21 @@ namespace onnxNote
         {
             if (yoloPoseModelHandle == null) return;
             yoloPoseModelHandle.OverlapBBoxThreshold = (float)numericUpDown_bboxOverlapTh.Value;
-            trackBar_frameIndex_ValueChanged(null, null);
+            drawFrame();
         }
 
         private void numericUpDown_tolsoOverlapTh_ValueChanged(object sender, EventArgs e)
         {
             if (yoloPoseModelHandle == null) return;
             yoloPoseModelHandle.OverlapTolsoThreshold = (float)numericUpDown_tolsoOverlapTh.Value;
-            trackBar_frameIndex_ValueChanged(null, null);
+            drawFrame();
         }
 
         private void numericUpDown_shoulderOverlapTh_ValueChanged(object sender, EventArgs e)
         {
             if (yoloPoseModelHandle == null) return;
             yoloPoseModelHandle.OverlapShoulderThreshold = (float)numericUpDown_shoulderOverlapTh.Value;
-            trackBar_frameIndex_ValueChanged(null, null);
+            drawFrame();
         }
 
         private void button_SwitchOverLapBbox_Click(object sender, EventArgs e)
@@ -1515,10 +1416,196 @@ namespace onnxNote
             numericUpDown_shoulderOverlapTh.Value *= -1;
         }
 
-        private bool suppressMouseEnter = false;
+        private void button_sortPoseInfoBBox_Click(object sender, EventArgs e)
+        {
+            int RowsCount = dataGridView_PoseLines.Rows.Count - 1;
+
+            for (int ri = 0; ri < RowsCount; ri++)
+            {
+                DataGridViewRow row = dataGridView_PoseLines.Rows[ri];
+
+                object value_frameIndex = row.Cells[2].Value;
+                if (value_frameIndex == null) continue;
+                int newFrameIndex = int.Parse(value_frameIndex.ToString());
+
+
+                if (row.Cells[4].Value == null) continue;
+                string label = row.Cells[4].Value.ToString();
+                if (label.Length < 1) continue;
+
+
+                string filename = row.Cells[1].Value.ToString();
+                string poseLine = row.Cells[3].Value.ToString() + ",-1";
+
+
+                if (capture == null || targetFilename != filename)
+                {
+                    string filePath = Path.Combine(textBox_topDirectoryPath.Text, filename);
+
+                    if (Path.GetExtension(filePath) != ".mp4") { filePath += ".mp4"; }
+
+                    if (File.Exists(filePath)) OpenMovieFile(filePath);
+                    targetFilename = filename;
+                }
+
+                if (capture != null)
+                {
+
+                    if (trackBar_frameIndex.Value != newFrameIndex)
+                    {
+                        trackBar_frameIndex.Value = newFrameIndex;
+                    }
+                    else
+                    {
+                        drawFrame();
+                    }
+
+                    string topDirectory = textBox_sortDirectoryPath.Text;
+                    string newFrameIndexString = newFrameIndex.ToString("00000000");
+
+                    using (Bitmap src = new Bitmap(pictureBox.Image))
+                    {
+                        for (int poseIndex = 0; poseIndex < LastPoseInfos.Count; poseIndex++)
+                        {
+                            string target_poseLine = LastPoseInfos[poseIndex].ToLineString();
+                            if (poseLine != target_poseLine) continue;
+
+                            Bbox bx = LastPoseInfos[poseIndex].Bbox;
+                            float Top = bx.Top;
+                            float Left = bx.Left;
+                            float Width = bx.Width;
+                            float Height = bx.Height;
+                            int offset = (int)(Width / 3f);
+
+                            using (Bitmap dst = new Bitmap((int)(Width + offset * 2), (int)(Height + offset * 2)))
+                            {
+                                Graphics g = Graphics.FromImage(dst);
+                                g.DrawImage(src, -Left + offset, -Top + offset, src.Width, src.Height);
+                                g.Dispose();
+
+                                string dirPath = Path.Combine(topDirectory, label);
+                                string filepath = Path.Combine(dirPath, filename + "," + newFrameIndexString + "," + poseIndex.ToString("000") + ".jpg");
+
+                                if (!Directory.Exists(dirPath)) { Directory.CreateDirectory(dirPath); };
+
+                                dst.Save(filepath, System.Drawing.Imaging.ImageFormat.Jpeg);
+
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private void dataGridView_PoseLines_CellValidating(object sender, DataGridViewCellValidatingEventArgs e)
+        {
+            if (dataGridView_PoseLines.Columns[e.ColumnIndex] is DataGridViewComboBoxColumn comboBoxColumn)
+            {
+                var comboBoxCell = dataGridView_PoseLines.Rows[e.RowIndex].Cells[e.ColumnIndex] as DataGridViewComboBoxCell;
+
+                if (comboBoxCell != null && !comboBoxColumn.Items.Contains(e.FormattedValue))
+                {
+                    comboBoxColumn.Items.Add(e.FormattedValue);
+                    comboBoxCell.Value = e.FormattedValue;
+                }
+            }
+        }
+
+        private void dataGridView_PoseLines_SortCompare(object sender, DataGridViewSortCompareEventArgs e)
+        {
+
+            if (e.Column.Name == "Column_Frame")
+            {
+                int val1, val2;
+
+                // 数値に変換して比較（変換できない場合は 0）
+                bool parsed1 = int.TryParse(e.CellValue1?.ToString(), out val1);
+                bool parsed2 = int.TryParse(e.CellValue2?.ToString(), out val2);
+
+                e.SortResult = val1.CompareTo(val2);
+
+                // 同値だったら行インデックスで比較
+                if (e.SortResult == 0)
+                    e.SortResult = e.RowIndex1.CompareTo(e.RowIndex2);
+
+                e.Handled = true;
+            }
+        }
+
+        private void dataGridView_PoseLines_RowEnter(object sender, DataGridViewCellEventArgs e)
+        {
+
+            if (dataGridView_PoseLines.SelectedRows.Count < 1) return;
+
+            DataGridViewRow row = dataGridView_PoseLines.SelectedRows[0];
+
+            string filename = row.Cells[1].Value.ToString();
+
+            if (capture == null || targetFilename != filename)
+            {
+                string filePath = Path.Combine(textBox_topDirectoryPath.Text, filename);
+
+                if (Path.GetExtension(filePath) != ".mp4") { filePath += ".mp4"; }
+
+                if (File.Exists(filePath)) OpenMovieFile(filePath);
+                targetFilename = filename;
+            }
+
+            if (capture != null)
+            {
+
+                object value = row.Cells[2].Value;
+                if (value == null) return;
+
+                string cellvalue = value.ToString();
+
+                int newFrameIndex = int.Parse(cellvalue);
+
+                if (trackBar_frameIndex.Value != newFrameIndex)
+                {
+                    trackBar_frameIndex.Value = newFrameIndex;
+                }
+                else
+                {
+                    drawFrame();
+                }
+
+            }
+        }
+
+        private void dataGridView_PoseLines_CurrentCellChanged(object sender, EventArgs e)
+        {
+            if (capture != null && dataGridView_PoseLines.Rows.Count > 0)
+            {
+                try
+                {
+                    if (dataGridView_PoseLines.SelectedCells.Count < 1
+                        || dataGridView_PoseLines.Rows[dataGridView_PoseLines.SelectedCells[0].RowIndex].Cells[2].Value == null) return;
+
+                    string cellvalue_frameIndex = dataGridView_PoseLines.Rows[dataGridView_PoseLines.SelectedCells[0].RowIndex].Cells[2].Value.ToString();
+
+                    int newFrameIndex = int.Parse(cellvalue_frameIndex);
+
+                    if (trackBar_frameIndex.Value != newFrameIndex)
+                    {
+                        trackBar_frameIndex.Value = newFrameIndex;
+                    }
+                    else
+                    {
+                        drawFrame();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"ERROR:{System.Reflection.MethodBase.GetCurrentMethod().Name} {ex.Message} {ex.StackTrace}");
+                }
+            }
+        }
+
+        private bool suppress_dataGridView_PoseLines_CellMouseEnter = false;
         private void dataGridView_PoseLines_CellMouseEnter(object sender, DataGridViewCellEventArgs e)
         {
-            if (suppressMouseEnter) return;
+            if (suppress_dataGridView_PoseLines_CellMouseEnter) return;
 
             if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
             {
@@ -1532,60 +1619,76 @@ namespace onnxNote
                     {
                         try
                         {
-                            suppressMouseEnter = true;
+                            suppress_dataGridView_PoseLines_CellMouseEnter = true;
                             dgv.CurrentCell = dgv.Rows[e.RowIndex].Cells[e.ColumnIndex];
                             //dgv.BeginEdit(true);
                         }
                         finally
                         {
-                            suppressMouseEnter = false;
+                            suppress_dataGridView_PoseLines_CellMouseEnter = false;
                         }
                     }
                 }
             }
         }
 
-        private void button_sortPoseInfoBBox_Click(object sender, EventArgs e)
+        private bool suppress_dataGridView_PoseLines_CellValueChanged = false;
+        private void dataGridView_PoseLines_CellValueChanged(object sender, DataGridViewCellEventArgs e)
         {
-            int LineLen = dataGridView_PoseLines.Rows.Count - 1;
-
-            for (int ri = 0; ri < LineLen; ri++)
+            if (!suppress_dataGridView_PoseLines_CellValueChanged && dataGridView_PoseLines.Rows.Count > 0 && e.RowIndex >= 0 && e.ColumnIndex == 4)
             {
-                DataGridViewRow row = dataGridView_PoseLines.Rows[ri];
 
-                string filename = row.Cells[1].Value.ToString();
-                if (capture == null || targetFilename != filename)
-                {
-                    string filePath = Path.Combine(textBox_topDirectoryPath.Text, filename);
-
-                    if (Path.GetExtension(filePath) != ".mp4") { filePath += ".mp4"; }
-
-                    if (File.Exists(filePath)) OpenMovieFile(filePath);
-                    targetFilename = filename;
-                }
-
-                if (capture != null)
-                {
-                    object value = row.Cells[2].Value;
-                    if (value == null) return;
-
-                    string cellvalue = value.ToString();
-
-                    int newFrameIndex = int.Parse(cellvalue);
-
-                    if (trackBar_frameIndex.Value != newFrameIndex)
-                    {
-                        trackBar_frameIndex.Value = newFrameIndex;
-                    }
-                    else
-                    {
-                        trackBar_frameIndex_ValueChanged(null, null);
-                    }
-
-                }
-
+                dataGridView_PoseLines.Rows[e.RowIndex].Cells[0].Value = true;
             }
+        }
 
+        private void dataGridView_PoseLines_DragDrop(object sender, DragEventArgs e)
+        {
+            string[] filePaths = (string[])e.Data.GetData(DataFormats.FileDrop, false);
+            string targetFilename = Path.GetFileNameWithoutExtension(filePaths[0]);
+            string[] cols = targetFilename.Split(',');
+
+            string filename = cols[0];
+            if (int.TryParse(cols[1], out int frameIndex))
+            {
+
+                string frameIndexString = frameIndex.ToString();
+
+                int rowsCount = dataGridView_PoseLines.Rows.Count - 1;
+                for (int rowsIndex = 0; rowsIndex < rowsCount; rowsIndex++)
+                {
+                    DataGridViewRow row = dataGridView_PoseLines.Rows[rowsIndex];
+                    if (row.Cells[1].Value.ToString() == filename && row.Cells[2].Value.ToString() == frameIndexString)
+                    {
+
+                        if (capture == null || targetFilename != filename)
+                        {
+                            string filePath = Path.Combine(textBox_topDirectoryPath.Text, filename);
+
+                            if (Path.GetExtension(filePath) != ".mp4") { filePath += ".mp4"; }
+
+                            if (File.Exists(filePath)) OpenMovieFile(filePath);
+                            targetFilename = filename;
+                        }
+
+                        dataGridView_PoseLines.Rows[rowsIndex].Selected = true;
+                        trackBar_frameIndex.Value = frameIndex;
+                        break;
+                    }
+                }
+            }
+        }
+
+        private void dataGridView_PoseLines_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effect = DragDropEffects.Copy;
+            }
+            else
+            {
+                e.Effect = DragDropEffects.None;
+            }
         }
     }
 
