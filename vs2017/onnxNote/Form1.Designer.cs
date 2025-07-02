@@ -40,13 +40,17 @@
             this.Column_Frame = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Column_FrameContents = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.Column_Label = new System.Windows.Forms.DataGridViewComboBoxColumn();
+            this.panel9 = new System.Windows.Forms.Panel();
             this.panel2 = new System.Windows.Forms.Panel();
             this.button_CopyFromTop = new System.Windows.Forms.Button();
             this.button_UnCheck = new System.Windows.Forms.Button();
             this.button_Check = new System.Windows.Forms.Button();
+            this.button_sortPoseInfoBBox = new System.Windows.Forms.Button();
             this.button_LoadPoseInfo = new System.Windows.Forms.Button();
             this.button_SaveFrameChecked = new System.Windows.Forms.Button();
             this.panel_Left = new System.Windows.Forms.Panel();
+            this.tabControl2 = new System.Windows.Forms.TabControl();
+            this.tabPage1 = new System.Windows.Forms.TabPage();
             this.textBox_PoseInfo = new System.Windows.Forms.TextBox();
             this.panel3 = new System.Windows.Forms.Panel();
             this.panel7 = new System.Windows.Forms.Panel();
@@ -62,7 +66,11 @@
             this.button_SwitchOverLapBbox = new System.Windows.Forms.Button();
             this.label7 = new System.Windows.Forms.Label();
             this.numericUpDown_bboxOverlapTh = new System.Windows.Forms.NumericUpDown();
+            this.tabPage3 = new System.Windows.Forms.TabPage();
+            this.panel8 = new System.Windows.Forms.Panel();
+            this.button1 = new System.Windows.Forms.Button();
             this.label5 = new System.Windows.Forms.Label();
+            this.numericUpDown_confidenceLevel_Nose = new System.Windows.Forms.NumericUpDown();
             this.panel_YOLOPOSE_BOTTOM = new System.Windows.Forms.Panel();
             this.panel1 = new System.Windows.Forms.Panel();
             this.trackBar_Conf = new System.Windows.Forms.TrackBar();
@@ -78,6 +86,9 @@
             this.button_OpenMovieFile = new System.Windows.Forms.Button();
             this.trackBar_frameIndex = new System.Windows.Forms.TrackBar();
             this.panel_YOLOPOSE_TOP = new System.Windows.Forms.Panel();
+            this.panel10 = new System.Windows.Forms.Panel();
+            this.textBox_sortDirectoryPath = new System.Windows.Forms.TextBox();
+            this.label10 = new System.Windows.Forms.Label();
             this.panel_topDirectoryPath = new System.Windows.Forms.Panel();
             this.textBox_topDirectoryPath = new System.Windows.Forms.TextBox();
             this.label6 = new System.Windows.Forms.Label();
@@ -109,6 +120,8 @@
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView_PoseLines)).BeginInit();
             this.panel2.SuspendLayout();
             this.panel_Left.SuspendLayout();
+            this.tabControl2.SuspendLayout();
+            this.tabPage1.SuspendLayout();
             this.panel3.SuspendLayout();
             this.panel6.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_shoulderOverlapTh)).BeginInit();
@@ -116,11 +129,15 @@
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_tolsoOverlapTh)).BeginInit();
             this.panel4.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_bboxOverlapTh)).BeginInit();
+            this.tabPage3.SuspendLayout();
+            this.panel8.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_confidenceLevel_Nose)).BeginInit();
             this.panel_YOLOPOSE_BOTTOM.SuspendLayout();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar_Conf)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar_frameIndex)).BeginInit();
             this.panel_YOLOPOSE_TOP.SuspendLayout();
+            this.panel10.SuspendLayout();
             this.panel_topDirectoryPath.SuspendLayout();
             this.panel_modelPath.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -157,9 +174,9 @@
             this.panel_Main.AutoScroll = true;
             this.panel_Main.Controls.Add(this.splitContainer1);
             this.panel_Main.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.panel_Main.Location = new System.Drawing.Point(3, 50);
+            this.panel_Main.Location = new System.Drawing.Point(3, 73);
             this.panel_Main.Name = "panel_Main";
-            this.panel_Main.Size = new System.Drawing.Size(1032, 667);
+            this.panel_Main.Size = new System.Drawing.Size(1032, 644);
             this.panel_Main.TabIndex = 3;
             this.panel_Main.Resize += new System.EventHandler(this.panel_Main_Resize);
             // 
@@ -178,10 +195,12 @@
             // splitContainer1.Panel2
             // 
             this.splitContainer1.Panel2.Controls.Add(this.dataGridView_PoseLines);
+            this.splitContainer1.Panel2.Controls.Add(this.panel9);
             this.splitContainer1.Panel2.Controls.Add(this.panel2);
+            this.splitContainer1.Panel2.Controls.Add(this.button_sortPoseInfoBBox);
             this.splitContainer1.Panel2.Controls.Add(this.button_LoadPoseInfo);
             this.splitContainer1.Panel2.Controls.Add(this.button_SaveFrameChecked);
-            this.splitContainer1.Size = new System.Drawing.Size(1032, 667);
+            this.splitContainer1.Size = new System.Drawing.Size(1032, 644);
             this.splitContainer1.SplitterDistance = 720;
             this.splitContainer1.TabIndex = 1;
             // 
@@ -205,11 +224,11 @@
             this.Column_FrameContents,
             this.Column_Label});
             this.dataGridView_PoseLines.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.dataGridView_PoseLines.Location = new System.Drawing.Point(0, 46);
+            this.dataGridView_PoseLines.Location = new System.Drawing.Point(0, 69);
             this.dataGridView_PoseLines.Name = "dataGridView_PoseLines";
             this.dataGridView_PoseLines.RowHeadersWidth = 26;
             this.dataGridView_PoseLines.RowTemplate.Height = 21;
-            this.dataGridView_PoseLines.Size = new System.Drawing.Size(308, 586);
+            this.dataGridView_PoseLines.Size = new System.Drawing.Size(308, 508);
             this.dataGridView_PoseLines.TabIndex = 0;
             this.dataGridView_PoseLines.CellMouseEnter += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView_PoseLines_CellMouseEnter);
             this.dataGridView_PoseLines.CellValidating += new System.Windows.Forms.DataGridViewCellValidatingEventHandler(this.dataGridView_PoseLines_CellValidating);
@@ -246,13 +265,21 @@
             this.Column_Label.Name = "Column_Label";
             this.Column_Label.SortMode = System.Windows.Forms.DataGridViewColumnSortMode.Automatic;
             // 
+            // panel9
+            // 
+            this.panel9.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.panel9.Location = new System.Drawing.Point(0, 577);
+            this.panel9.Name = "panel9";
+            this.panel9.Size = new System.Drawing.Size(308, 32);
+            this.panel9.TabIndex = 3;
+            // 
             // panel2
             // 
             this.panel2.Controls.Add(this.button_CopyFromTop);
             this.panel2.Controls.Add(this.button_UnCheck);
             this.panel2.Controls.Add(this.button_Check);
             this.panel2.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panel2.Location = new System.Drawing.Point(0, 632);
+            this.panel2.Location = new System.Drawing.Point(0, 609);
             this.panel2.Name = "panel2";
             this.panel2.Size = new System.Drawing.Size(308, 35);
             this.panel2.TabIndex = 3;
@@ -294,6 +321,17 @@
             this.button_Check.UseVisualStyleBackColor = true;
             this.button_Check.Click += new System.EventHandler(this.button_Check_Click);
             // 
+            // button_sortPoseInfoBBox
+            // 
+            this.button_sortPoseInfoBBox.Dock = System.Windows.Forms.DockStyle.Top;
+            this.button_sortPoseInfoBBox.Location = new System.Drawing.Point(0, 46);
+            this.button_sortPoseInfoBBox.Name = "button_sortPoseInfoBBox";
+            this.button_sortPoseInfoBBox.Size = new System.Drawing.Size(308, 23);
+            this.button_sortPoseInfoBBox.TabIndex = 4;
+            this.button_sortPoseInfoBBox.Text = "sortPoseInfoBBox";
+            this.button_sortPoseInfoBBox.UseVisualStyleBackColor = true;
+            this.button_sortPoseInfoBBox.Click += new System.EventHandler(this.button_sortPoseInfoBBox_Click);
+            // 
             // button_LoadPoseInfo
             // 
             this.button_LoadPoseInfo.Dock = System.Windows.Forms.DockStyle.Top;
@@ -318,23 +356,44 @@
             // 
             // panel_Left
             // 
-            this.panel_Left.Controls.Add(this.textBox_PoseInfo);
-            this.panel_Left.Controls.Add(this.panel3);
-            this.panel_Left.Controls.Add(this.label5);
+            this.panel_Left.Controls.Add(this.tabControl2);
             this.panel_Left.Dock = System.Windows.Forms.DockStyle.Right;
-            this.panel_Left.Location = new System.Drawing.Point(1035, 50);
+            this.panel_Left.Location = new System.Drawing.Point(1035, 73);
             this.panel_Left.Name = "panel_Left";
-            this.panel_Left.Size = new System.Drawing.Size(177, 667);
+            this.panel_Left.Size = new System.Drawing.Size(177, 644);
             this.panel_Left.TabIndex = 1;
+            // 
+            // tabControl2
+            // 
+            this.tabControl2.Controls.Add(this.tabPage1);
+            this.tabControl2.Controls.Add(this.tabPage3);
+            this.tabControl2.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tabControl2.Location = new System.Drawing.Point(0, 0);
+            this.tabControl2.Name = "tabControl2";
+            this.tabControl2.SelectedIndex = 0;
+            this.tabControl2.Size = new System.Drawing.Size(177, 644);
+            this.tabControl2.TabIndex = 3;
+            // 
+            // tabPage1
+            // 
+            this.tabPage1.Controls.Add(this.textBox_PoseInfo);
+            this.tabPage1.Controls.Add(this.panel3);
+            this.tabPage1.Location = new System.Drawing.Point(4, 22);
+            this.tabPage1.Name = "tabPage1";
+            this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage1.Size = new System.Drawing.Size(169, 618);
+            this.tabPage1.TabIndex = 0;
+            this.tabPage1.Text = "PoseInfo";
+            this.tabPage1.UseVisualStyleBackColor = true;
             // 
             // textBox_PoseInfo
             // 
             this.textBox_PoseInfo.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.textBox_PoseInfo.Location = new System.Drawing.Point(0, 12);
+            this.textBox_PoseInfo.Location = new System.Drawing.Point(3, 3);
             this.textBox_PoseInfo.Multiline = true;
             this.textBox_PoseInfo.Name = "textBox_PoseInfo";
             this.textBox_PoseInfo.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.textBox_PoseInfo.Size = new System.Drawing.Size(177, 535);
+            this.textBox_PoseInfo.Size = new System.Drawing.Size(163, 492);
             this.textBox_PoseInfo.TabIndex = 1;
             this.textBox_PoseInfo.WordWrap = false;
             // 
@@ -345,9 +404,9 @@
             this.panel3.Controls.Add(this.panel5);
             this.panel3.Controls.Add(this.panel4);
             this.panel3.Dock = System.Windows.Forms.DockStyle.Bottom;
-            this.panel3.Location = new System.Drawing.Point(0, 547);
+            this.panel3.Location = new System.Drawing.Point(3, 495);
             this.panel3.Name = "panel3";
-            this.panel3.Size = new System.Drawing.Size(177, 120);
+            this.panel3.Size = new System.Drawing.Size(163, 120);
             this.panel3.TabIndex = 2;
             // 
             // panel7
@@ -355,7 +414,7 @@
             this.panel7.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel7.Location = new System.Drawing.Point(0, 90);
             this.panel7.Name = "panel7";
-            this.panel7.Size = new System.Drawing.Size(177, 30);
+            this.panel7.Size = new System.Drawing.Size(163, 30);
             this.panel7.TabIndex = 2;
             // 
             // panel6
@@ -366,13 +425,13 @@
             this.panel6.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel6.Location = new System.Drawing.Point(0, 60);
             this.panel6.Name = "panel6";
-            this.panel6.Size = new System.Drawing.Size(177, 30);
+            this.panel6.Size = new System.Drawing.Size(163, 30);
             this.panel6.TabIndex = 1;
             // 
             // button_SwitchOverLapShoulder
             // 
             this.button_SwitchOverLapShoulder.Dock = System.Windows.Forms.DockStyle.Right;
-            this.button_SwitchOverLapShoulder.Location = new System.Drawing.Point(84, 0);
+            this.button_SwitchOverLapShoulder.Location = new System.Drawing.Point(70, 0);
             this.button_SwitchOverLapShoulder.Name = "button_SwitchOverLapShoulder";
             this.button_SwitchOverLapShoulder.Size = new System.Drawing.Size(21, 30);
             this.button_SwitchOverLapShoulder.TabIndex = 4;
@@ -399,7 +458,7 @@
             0,
             0,
             131072});
-            this.numericUpDown_shoulderOverlapTh.Location = new System.Drawing.Point(105, 0);
+            this.numericUpDown_shoulderOverlapTh.Location = new System.Drawing.Point(91, 0);
             this.numericUpDown_shoulderOverlapTh.Maximum = new decimal(new int[] {
             1,
             0,
@@ -429,13 +488,13 @@
             this.panel5.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel5.Location = new System.Drawing.Point(0, 30);
             this.panel5.Name = "panel5";
-            this.panel5.Size = new System.Drawing.Size(177, 30);
+            this.panel5.Size = new System.Drawing.Size(163, 30);
             this.panel5.TabIndex = 1;
             // 
             // button_SwitchOverLapTolso
             // 
             this.button_SwitchOverLapTolso.Dock = System.Windows.Forms.DockStyle.Right;
-            this.button_SwitchOverLapTolso.Location = new System.Drawing.Point(84, 0);
+            this.button_SwitchOverLapTolso.Location = new System.Drawing.Point(70, 0);
             this.button_SwitchOverLapTolso.Name = "button_SwitchOverLapTolso";
             this.button_SwitchOverLapTolso.Size = new System.Drawing.Size(21, 30);
             this.button_SwitchOverLapTolso.TabIndex = 4;
@@ -462,7 +521,7 @@
             0,
             0,
             131072});
-            this.numericUpDown_tolsoOverlapTh.Location = new System.Drawing.Point(105, 0);
+            this.numericUpDown_tolsoOverlapTh.Location = new System.Drawing.Point(91, 0);
             this.numericUpDown_tolsoOverlapTh.Maximum = new decimal(new int[] {
             1,
             0,
@@ -492,13 +551,13 @@
             this.panel4.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel4.Location = new System.Drawing.Point(0, 0);
             this.panel4.Name = "panel4";
-            this.panel4.Size = new System.Drawing.Size(177, 30);
+            this.panel4.Size = new System.Drawing.Size(163, 30);
             this.panel4.TabIndex = 0;
             // 
             // button_SwitchOverLapBbox
             // 
             this.button_SwitchOverLapBbox.Dock = System.Windows.Forms.DockStyle.Right;
-            this.button_SwitchOverLapBbox.Location = new System.Drawing.Point(84, 0);
+            this.button_SwitchOverLapBbox.Location = new System.Drawing.Point(70, 0);
             this.button_SwitchOverLapBbox.Name = "button_SwitchOverLapBbox";
             this.button_SwitchOverLapBbox.Size = new System.Drawing.Size(21, 30);
             this.button_SwitchOverLapBbox.TabIndex = 2;
@@ -525,7 +584,7 @@
             0,
             0,
             131072});
-            this.numericUpDown_bboxOverlapTh.Location = new System.Drawing.Point(105, 0);
+            this.numericUpDown_bboxOverlapTh.Location = new System.Drawing.Point(91, 0);
             this.numericUpDown_bboxOverlapTh.Maximum = new decimal(new int[] {
             1,
             0,
@@ -547,15 +606,77 @@
             65536});
             this.numericUpDown_bboxOverlapTh.ValueChanged += new System.EventHandler(this.numericUpDown_bboxOverlapTh_ValueChanged);
             // 
+            // tabPage3
+            // 
+            this.tabPage3.Controls.Add(this.panel8);
+            this.tabPage3.Location = new System.Drawing.Point(4, 22);
+            this.tabPage3.Name = "tabPage3";
+            this.tabPage3.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage3.Size = new System.Drawing.Size(169, 618);
+            this.tabPage3.TabIndex = 1;
+            this.tabPage3.Text = "confidenceLevel";
+            this.tabPage3.UseVisualStyleBackColor = true;
+            // 
+            // panel8
+            // 
+            this.panel8.Controls.Add(this.button1);
+            this.panel8.Controls.Add(this.label5);
+            this.panel8.Controls.Add(this.numericUpDown_confidenceLevel_Nose);
+            this.panel8.Dock = System.Windows.Forms.DockStyle.Top;
+            this.panel8.Location = new System.Drawing.Point(3, 3);
+            this.panel8.Name = "panel8";
+            this.panel8.Size = new System.Drawing.Size(163, 30);
+            this.panel8.TabIndex = 2;
+            // 
+            // button1
+            // 
+            this.button1.Dock = System.Windows.Forms.DockStyle.Right;
+            this.button1.Location = new System.Drawing.Point(70, 0);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(21, 30);
+            this.button1.TabIndex = 4;
+            this.button1.UseVisualStyleBackColor = true;
+            // 
             // label5
             // 
             this.label5.AutoSize = true;
-            this.label5.Dock = System.Windows.Forms.DockStyle.Top;
+            this.label5.Dock = System.Windows.Forms.DockStyle.Left;
             this.label5.Location = new System.Drawing.Point(0, 0);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(49, 12);
-            this.label5.TabIndex = 0;
-            this.label5.Text = "PoseInfo";
+            this.label5.Size = new System.Drawing.Size(31, 12);
+            this.label5.TabIndex = 3;
+            this.label5.Text = "Nose";
+            // 
+            // numericUpDown_confidenceLevel_Nose
+            // 
+            this.numericUpDown_confidenceLevel_Nose.DecimalPlaces = 2;
+            this.numericUpDown_confidenceLevel_Nose.Dock = System.Windows.Forms.DockStyle.Right;
+            this.numericUpDown_confidenceLevel_Nose.Font = new System.Drawing.Font("MS UI Gothic", 14.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this.numericUpDown_confidenceLevel_Nose.Increment = new decimal(new int[] {
+            1,
+            0,
+            0,
+            131072});
+            this.numericUpDown_confidenceLevel_Nose.Location = new System.Drawing.Point(91, 0);
+            this.numericUpDown_confidenceLevel_Nose.Maximum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.numericUpDown_confidenceLevel_Nose.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            -2147483648});
+            this.numericUpDown_confidenceLevel_Nose.Name = "numericUpDown_confidenceLevel_Nose";
+            this.numericUpDown_confidenceLevel_Nose.Size = new System.Drawing.Size(72, 26);
+            this.numericUpDown_confidenceLevel_Nose.TabIndex = 2;
+            this.numericUpDown_confidenceLevel_Nose.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
+            this.numericUpDown_confidenceLevel_Nose.Value = new decimal(new int[] {
+            6,
+            0,
+            0,
+            65536});
             // 
             // panel_YOLOPOSE_BOTTOM
             // 
@@ -719,13 +840,43 @@
             // 
             // panel_YOLOPOSE_TOP
             // 
+            this.panel_YOLOPOSE_TOP.Controls.Add(this.panel10);
             this.panel_YOLOPOSE_TOP.Controls.Add(this.panel_topDirectoryPath);
             this.panel_YOLOPOSE_TOP.Controls.Add(this.panel_modelPath);
             this.panel_YOLOPOSE_TOP.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel_YOLOPOSE_TOP.Location = new System.Drawing.Point(3, 3);
             this.panel_YOLOPOSE_TOP.Name = "panel_YOLOPOSE_TOP";
-            this.panel_YOLOPOSE_TOP.Size = new System.Drawing.Size(1209, 47);
+            this.panel_YOLOPOSE_TOP.Size = new System.Drawing.Size(1209, 70);
             this.panel_YOLOPOSE_TOP.TabIndex = 1;
+            // 
+            // panel10
+            // 
+            this.panel10.Controls.Add(this.textBox_sortDirectoryPath);
+            this.panel10.Controls.Add(this.label10);
+            this.panel10.Dock = System.Windows.Forms.DockStyle.Top;
+            this.panel10.Location = new System.Drawing.Point(0, 44);
+            this.panel10.Name = "panel10";
+            this.panel10.Size = new System.Drawing.Size(1209, 22);
+            this.panel10.TabIndex = 6;
+            // 
+            // textBox_sortDirectoryPath
+            // 
+            this.textBox_sortDirectoryPath.Dock = System.Windows.Forms.DockStyle.Top;
+            this.textBox_sortDirectoryPath.Location = new System.Drawing.Point(105, 0);
+            this.textBox_sortDirectoryPath.Name = "textBox_sortDirectoryPath";
+            this.textBox_sortDirectoryPath.Size = new System.Drawing.Size(1104, 19);
+            this.textBox_sortDirectoryPath.TabIndex = 2;
+            // 
+            // label10
+            // 
+            this.label10.AutoSize = true;
+            this.label10.Dock = System.Windows.Forms.DockStyle.Left;
+            this.label10.Location = new System.Drawing.Point(0, 0);
+            this.label10.Name = "label10";
+            this.label10.Padding = new System.Windows.Forms.Padding(0, 0, 10, 0);
+            this.label10.Size = new System.Drawing.Size(105, 12);
+            this.label10.TabIndex = 3;
+            this.label10.Text = "sortDirectoryPath";
             // 
             // panel_topDirectoryPath
             // 
@@ -821,7 +972,7 @@
             // 
             // button_LoadWorkSetting
             // 
-            this.button_LoadWorkSetting.Location = new System.Drawing.Point(91, 52);
+            this.button_LoadWorkSetting.Location = new System.Drawing.Point(84, 258);
             this.button_LoadWorkSetting.Name = "button_LoadWorkSetting";
             this.button_LoadWorkSetting.Size = new System.Drawing.Size(75, 23);
             this.button_LoadWorkSetting.TabIndex = 7;
@@ -831,7 +982,7 @@
             // 
             // button_SaveWorkSetting
             // 
-            this.button_SaveWorkSetting.Location = new System.Drawing.Point(10, 52);
+            this.button_SaveWorkSetting.Location = new System.Drawing.Point(3, 258);
             this.button_SaveWorkSetting.Name = "button_SaveWorkSetting";
             this.button_SaveWorkSetting.Size = new System.Drawing.Size(75, 23);
             this.button_SaveWorkSetting.TabIndex = 7;
@@ -841,7 +992,7 @@
             // 
             // textBox_WorkTitle
             // 
-            this.textBox_WorkTitle.Location = new System.Drawing.Point(10, 27);
+            this.textBox_WorkTitle.Location = new System.Drawing.Point(3, 233);
             this.textBox_WorkTitle.Name = "textBox_WorkTitle";
             this.textBox_WorkTitle.Size = new System.Drawing.Size(288, 19);
             this.textBox_WorkTitle.TabIndex = 6;
@@ -849,7 +1000,7 @@
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(8, 12);
+            this.label4.Location = new System.Drawing.Point(1, 218);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(56, 12);
             this.label4.TabIndex = 5;
@@ -857,7 +1008,7 @@
             // 
             // textBox_LabelList
             // 
-            this.textBox_LabelList.Location = new System.Drawing.Point(147, 119);
+            this.textBox_LabelList.Location = new System.Drawing.Point(140, 325);
             this.textBox_LabelList.Multiline = true;
             this.textBox_LabelList.Name = "textBox_LabelList";
             this.textBox_LabelList.ScrollBars = System.Windows.Forms.ScrollBars.Both;
@@ -867,7 +1018,7 @@
             // 
             // textBox_PredictBatchSize
             // 
-            this.textBox_PredictBatchSize.Location = new System.Drawing.Point(10, 188);
+            this.textBox_PredictBatchSize.Location = new System.Drawing.Point(3, 394);
             this.textBox_PredictBatchSize.Name = "textBox_PredictBatchSize";
             this.textBox_PredictBatchSize.Size = new System.Drawing.Size(100, 19);
             this.textBox_PredictBatchSize.TabIndex = 3;
@@ -877,7 +1028,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(8, 173);
+            this.label2.Location = new System.Drawing.Point(1, 379);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(100, 12);
             this.label2.TabIndex = 2;
@@ -890,7 +1041,7 @@
             "CPU",
             "GPU0",
             "GPU1"});
-            this.comboBox_DeviceID.Location = new System.Drawing.Point(8, 119);
+            this.comboBox_DeviceID.Location = new System.Drawing.Point(1, 325);
             this.comboBox_DeviceID.Name = "comboBox_DeviceID";
             this.comboBox_DeviceID.Size = new System.Drawing.Size(67, 20);
             this.comboBox_DeviceID.TabIndex = 1;
@@ -900,7 +1051,7 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(145, 104);
+            this.label3.Location = new System.Drawing.Point(138, 310);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(51, 12);
             this.label3.TabIndex = 0;
@@ -909,7 +1060,7 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(8, 104);
+            this.label1.Location = new System.Drawing.Point(1, 310);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(51, 12);
             this.label1.TabIndex = 0;
@@ -950,7 +1101,9 @@
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView_PoseLines)).EndInit();
             this.panel2.ResumeLayout(false);
             this.panel_Left.ResumeLayout(false);
-            this.panel_Left.PerformLayout();
+            this.tabControl2.ResumeLayout(false);
+            this.tabPage1.ResumeLayout(false);
+            this.tabPage1.PerformLayout();
             this.panel3.ResumeLayout(false);
             this.panel6.ResumeLayout(false);
             this.panel6.PerformLayout();
@@ -961,6 +1114,10 @@
             this.panel4.ResumeLayout(false);
             this.panel4.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_bboxOverlapTh)).EndInit();
+            this.tabPage3.ResumeLayout(false);
+            this.panel8.ResumeLayout(false);
+            this.panel8.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDown_confidenceLevel_Nose)).EndInit();
             this.panel_YOLOPOSE_BOTTOM.ResumeLayout(false);
             this.panel_YOLOPOSE_BOTTOM.PerformLayout();
             this.panel1.ResumeLayout(false);
@@ -968,6 +1125,8 @@
             ((System.ComponentModel.ISupportInitialize)(this.trackBar_Conf)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar_frameIndex)).EndInit();
             this.panel_YOLOPOSE_TOP.ResumeLayout(false);
+            this.panel10.ResumeLayout(false);
+            this.panel10.PerformLayout();
             this.panel_topDirectoryPath.ResumeLayout(false);
             this.panel_topDirectoryPath.PerformLayout();
             this.panel_modelPath.ResumeLayout(false);
@@ -1025,7 +1184,6 @@
         private System.Windows.Forms.Button button_SaveWorkSetting;
         private System.Windows.Forms.Panel panel_Left;
         private System.Windows.Forms.TextBox textBox_PoseInfo;
-        private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Panel panel_topDirectoryPath;
         private System.Windows.Forms.TextBox textBox_topDirectoryPath;
         private System.Windows.Forms.Label label6;
@@ -1049,6 +1207,18 @@
         private System.Windows.Forms.Button button_SwitchOverLapShoulder;
         private System.Windows.Forms.Button button_SwitchOverLapTolso;
         private System.Windows.Forms.Button button_SwitchOverLapBbox;
+        private System.Windows.Forms.TabControl tabControl2;
+        private System.Windows.Forms.TabPage tabPage1;
+        private System.Windows.Forms.TabPage tabPage3;
+        private System.Windows.Forms.Panel panel8;
+        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.NumericUpDown numericUpDown_confidenceLevel_Nose;
+        private System.Windows.Forms.Panel panel9;
+        private System.Windows.Forms.Panel panel10;
+        private System.Windows.Forms.TextBox textBox_sortDirectoryPath;
+        private System.Windows.Forms.Label label10;
+        private System.Windows.Forms.Button button_sortPoseInfoBBox;
     }
 }
 
