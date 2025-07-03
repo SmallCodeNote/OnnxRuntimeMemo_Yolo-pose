@@ -1560,13 +1560,11 @@ namespace onnxNote
             {
                 int val1, val2;
 
-                // 数値に変換して比較（変換できない場合は 0）
                 bool parsed1 = int.TryParse(e.CellValue1?.ToString(), out val1);
                 bool parsed2 = int.TryParse(e.CellValue2?.ToString(), out val2);
 
                 e.SortResult = val1.CompareTo(val2);
 
-                // 同値だったら行インデックスで比較
                 if (e.SortResult == 0)
                     e.SortResult = e.RowIndex1.CompareTo(e.RowIndex2);
 
