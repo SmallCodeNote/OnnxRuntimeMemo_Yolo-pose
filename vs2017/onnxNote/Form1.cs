@@ -82,6 +82,44 @@ namespace onnxNote
             }
         }
 
+
+        public static double LineStringDiff(string str0, string str1, int count = 0)
+        {
+            var values0 = str0.Split(',').Select(s => double.TryParse(s, out var v) ? v : 0.0).ToArray();
+            var values1 = str1.Split(',').Select(s => double.TryParse(s, out var v) ? v : 0.0).ToArray();
+
+            int len = (count < 1) ? Math.Min(values0.Length, values1.Length) : Math.Min(count, Math.Min(values0.Length, values1.Length));
+
+            double sum = 0;
+            for (int i = 0; i < len; i++)
+            {
+                double diff = values0[i] - values1[i];
+                sum += diff * diff;
+            }
+
+            return Math.Sqrt(sum);
+        }
+
+
+        public static int NearestLineStringIndex(string str0, List<string> strs, int count = 0)
+        {
+            double minDiff = double.MaxValue;
+            int nearestIndex = -1;
+
+            for (int i = 0; i < strs.Count; i++)
+            {
+                double diff = LineStringDiff(str0, strs[i], count);
+                if (diff < minDiff)
+                {
+                    minDiff = diff;
+                    nearestIndex = i;
+                }
+            }
+
+            return nearestIndex;
+        }
+
+
         private void button_OpenModelFile_Click(object sender, EventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog();
@@ -842,7 +880,7 @@ namespace onnxNote
 
                 bool isFirst = true;
 
-                PoseValue.Add("filename,frame," + PoseInfo.ToLineStringHeader());
+                PoseValue.Add("filename,frame," + PoseInfo.ToLineStringHeader() + ",Label");
 
 
                 if (dataGridView_PoseLines.InvokeRequired)
@@ -890,7 +928,7 @@ namespace onnxNote
                                 lineAnkle += $",{pose.KeyPoints.Ankle()}";
 
                                 string poseString = pose.ToLineString();
-                                linePose = targetFilename + "," + posFrame + "," + poseString;
+                                linePose = targetFilename + "," + posFrame + "," + poseString + ",-1";
 
                                 PoseValue.Add(linePose);
 
@@ -1237,7 +1275,7 @@ namespace onnxNote
             }
             else
             {
-                Lines.Add("filename,frame," + PoseInfo.ToLineStringHeader());
+                Lines.Add("filename,frame," + PoseInfo.ToLineStringHeader() + ",Label");
             }
 
             foreach (DataGridViewRow row in dataGridView_PoseLines.Rows)
@@ -1322,11 +1360,17 @@ namespace onnxNote
             string[] items = textBox_LabelList.Text.Replace("\r\n", "\n").Trim('\n').Split('\n');
             ((DataGridViewComboBoxColumn)dataGridView_PoseLines.Columns[4]).Items.Clear();
             int labelIndex = 0;
+            List< string> labelsList = new List<string>();
+
             foreach (var item in items)
             {
-                ((DataGridViewComboBoxColumn)dataGridView_PoseLines.Columns[4]).Items.Add($"{labelIndex}_{item}");
+                string labelElement = $"{labelIndex:00}_{item}";
+                ((DataGridViewComboBoxColumn)dataGridView_PoseLines.Columns[4]).Items.Add(labelElement);
+                labelsList.Add(labelElement);
                 labelIndex++;
             }
+
+            label1_LabelList.Text = string.Join("\r\n", labelsList);
         }
 
         private void button_CopyFromTop_Click(object sender, EventArgs e)
@@ -1428,14 +1472,12 @@ namespace onnxNote
                 if (value_frameIndex == null) continue;
                 int newFrameIndex = int.Parse(value_frameIndex.ToString());
 
-
                 if (row.Cells[4].Value == null) continue;
                 string label = row.Cells[4].Value.ToString();
                 if (label.Length < 1) continue;
 
-
                 string filename = row.Cells[1].Value.ToString();
-                string poseLine = row.Cells[3].Value.ToString() + ",-1";
+                string poseLine = row.Cells[3].Value.ToString();
 
 
                 if (capture == null || targetFilename != filename)
@@ -1463,34 +1505,34 @@ namespace onnxNote
                     string topDirectory = textBox_sortDirectoryPath.Text;
                     string newFrameIndexString = newFrameIndex.ToString("00000000");
 
+                    List<string> poseInfosList = LastPoseInfos.Select(info => info.ToLineString()).ToList();
+                    int poseIndex = NearestLineStringIndex(poseLine, poseInfosList);
+
                     using (Bitmap src = new Bitmap(pictureBox.Image))
                     {
-                        for (int poseIndex = 0; poseIndex < LastPoseInfos.Count; poseIndex++)
+                        string target_poseLine = LastPoseInfos[poseIndex].ToLineString();
+                        if (poseLine != target_poseLine) continue;
+
+                        Bbox bx = LastPoseInfos[poseIndex].Bbox;
+                        float Top = bx.Top;
+                        float Left = bx.Left;
+                        float Width = bx.Width;
+                        float Height = bx.Height;
+                        int offset = (int)(Width / 3f);
+
+                        using (Bitmap dst = new Bitmap((int)(Width + offset * 2), (int)(Height + offset * 2)))
                         {
-                            string target_poseLine = LastPoseInfos[poseIndex].ToLineString();
-                            if (poseLine != target_poseLine) continue;
+                            Graphics g = Graphics.FromImage(dst);
+                            g.DrawImage(src, -Left + offset, -Top + offset, src.Width, src.Height);
+                            g.Dispose();
 
-                            Bbox bx = LastPoseInfos[poseIndex].Bbox;
-                            float Top = bx.Top;
-                            float Left = bx.Left;
-                            float Width = bx.Width;
-                            float Height = bx.Height;
-                            int offset = (int)(Width / 3f);
+                            string dirPath = Path.Combine(topDirectory, label);
+                            string filepath = Path.Combine(dirPath, filename + "," + newFrameIndexString + "," + poseIndex.ToString("000") + ".jpg");
 
-                            using (Bitmap dst = new Bitmap((int)(Width + offset * 2), (int)(Height + offset * 2)))
-                            {
-                                Graphics g = Graphics.FromImage(dst);
-                                g.DrawImage(src, -Left + offset, -Top + offset, src.Width, src.Height);
-                                g.Dispose();
+                            if (!Directory.Exists(dirPath)) { Directory.CreateDirectory(dirPath); };
 
-                                string dirPath = Path.Combine(topDirectory, label);
-                                string filepath = Path.Combine(dirPath, filename + "," + newFrameIndexString + "," + poseIndex.ToString("000") + ".jpg");
+                            dst.Save(filepath, System.Drawing.Imaging.ImageFormat.Jpeg);
 
-                                if (!Directory.Exists(dirPath)) { Directory.CreateDirectory(dirPath); };
-
-                                dst.Save(filepath, System.Drawing.Imaging.ImageFormat.Jpeg);
-
-                            }
                         }
                     }
                 }
@@ -1539,6 +1581,8 @@ namespace onnxNote
 
             DataGridViewRow row = dataGridView_PoseLines.SelectedRows[0];
 
+            if (row.Cells[1].Value == null) return;
+
             string filename = row.Cells[1].Value.ToString();
 
             if (capture == null || targetFilename != filename)
@@ -1579,10 +1623,8 @@ namespace onnxNote
             {
                 try
                 {
-                    if (dataGridView_PoseLines.SelectedCells.Count < 1
-                        || dataGridView_PoseLines.Rows[dataGridView_PoseLines.SelectedCells[0].RowIndex].Cells[2].Value == null) return;
-
-                    string cellvalue_frameIndex = dataGridView_PoseLines.Rows[dataGridView_PoseLines.SelectedCells[0].RowIndex].Cells[2].Value.ToString();
+                    int ri = dataGridView_PoseLines.SelectedCells[0].RowIndex;
+                    string cellvalue_frameIndex = dataGridView_PoseLines.Rows[ri].Cells[2].Value.ToString();
 
                     int newFrameIndex = int.Parse(cellvalue_frameIndex);
 
@@ -1637,7 +1679,6 @@ namespace onnxNote
         {
             if (!suppress_dataGridView_PoseLines_CellValueChanged && dataGridView_PoseLines.Rows.Count > 0 && e.RowIndex >= 0 && e.ColumnIndex == 4)
             {
-
                 dataGridView_PoseLines.Rows[e.RowIndex].Cells[0].Value = true;
             }
         }
@@ -1673,6 +1714,7 @@ namespace onnxNote
 
                         dataGridView_PoseLines.Rows[rowsIndex].Selected = true;
                         trackBar_frameIndex.Value = frameIndex;
+                        dataGridView_PoseLines.FirstDisplayedScrollingRowIndex = rowsIndex;
                         break;
                     }
                 }
@@ -1688,6 +1730,59 @@ namespace onnxNote
             else
             {
                 e.Effect = DragDropEffects.None;
+            }
+        }
+
+        private string dataGridView_PoseLines_KeyPress_KeyBuff = "";
+        private void dataGridView_PoseLines_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            var dgv = dataGridView_PoseLines;
+            if (dgv.CurrentRow == null) return;
+
+            if (char.IsDigit(e.KeyChar))
+            {
+                dataGridView_PoseLines_KeyPress_KeyBuff += e.KeyChar;
+
+                if (dataGridView_PoseLines_KeyPress_KeyBuff.Length > 2)
+                {
+                    dataGridView_PoseLines_KeyPress_KeyBuff = e.KeyChar.ToString();
+                }
+
+                if (int.TryParse(dataGridView_PoseLines_KeyPress_KeyBuff, out int index))
+                {
+                    foreach (DataGridViewRow row in dgv.SelectedRows)
+                    {
+
+                        foreach (DataGridViewCell cell in row.Cells)
+                        {
+                            if (cell is DataGridViewComboBoxCell comboCell)
+                            {
+                                if (index >= 0 && index < comboCell.Items.Count)
+                                {
+                                    comboCell.Value = comboCell.Items[index];
+                                }
+                            }
+                        }
+                    }
+                }
+
+                e.Handled = true;
+            }
+            else if (e.KeyChar == '-')
+            {
+                foreach (DataGridViewCell cell in dgv.CurrentRow.Cells)
+                {
+                    if (cell is DataGridViewComboBoxCell comboCell)
+                    {
+                        comboCell.Value = null;
+                    }
+                }
+                dataGridView_PoseLines_KeyPress_KeyBuff = "";
+                e.Handled = true;
+            }
+            else
+            {
+                dataGridView_PoseLines_KeyPress_KeyBuff = "";
             }
         }
     }
