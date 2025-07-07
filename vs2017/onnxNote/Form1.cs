@@ -1161,10 +1161,10 @@ namespace onnxNote
                     if (row == null) return;
 
                     string[] poseLine = row.Cells[3].Value?.ToString()?.Split(',') ?? Array.Empty<string>();
-                    if (poseLine.Length <= 2) return;
+                    if (poseLine.Length <= 6) return;
 
-                    int cx = (int)double.Parse(poseLine[0]);
-                    int cy = (int)double.Parse(poseLine[1]);
+                    int cx = (int)double.Parse(poseLine[4]);
+                    int cy = (int)double.Parse(poseLine[5]);
                     int r = 8;
 
                     g.FillEllipse(Brushes.LightGreen, cx - r, cy - r, r * 2, r * 2);

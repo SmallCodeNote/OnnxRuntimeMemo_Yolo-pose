@@ -339,7 +339,9 @@ namespace YoloPoseOnnxHandle
         {
             string linePoseHeader = "";
 
-            linePoseHeader += "Head.X,Head.Y";
+            linePoseHeader += "Bbox.X,Bbox.Y,Bbox.W,Bbox.H";
+
+            linePoseHeader += ",Head.X,Head.Y";
             linePoseHeader += ",WristLeft.X,WristLeft.Y";
             linePoseHeader += ",WristRight.X,WristRight.Y";
             linePoseHeader += ",ElbowLeftAngle,ElbowLeftLength,WristLeftLength";
@@ -362,8 +364,9 @@ namespace YoloPoseOnnxHandle
         public string ToLineString()
         {
             string linePose = "";
+            linePose += $"{Bbox.Center_x:0},{Bbox.Center_y:0},{Bbox.Width:0},{Bbox.Height:0}";
 
-            linePose += $"{KeyPoints.Head().X:0},{KeyPoints.Head().Y:0}";
+            linePose += $",{KeyPoints.Head().X:0},{KeyPoints.Head().Y:0}";
             linePose += $",{KeyPoints.WristLeft.X:0},{KeyPoints.WristLeft.Y:0}";
             linePose += $",{KeyPoints.WristRight.X:0},{KeyPoints.WristRight.Y:0}";
             linePose += $",{KeyPoints.ElbowLeftAngle:0},{KeyPoints.ElbowLeftLength:0},{KeyPoints.WristLeftLength:0}";
