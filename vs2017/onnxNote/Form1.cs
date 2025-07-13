@@ -415,7 +415,7 @@ namespace onnxNote
                             this.Invoke((Action)(() =>
                             {
                                 trackBar_frameIndex.Maximum = capture.FrameCount;
-                                trackBar_frameIndex.Value = 1;
+                                trackBar_frameIndex.Value = 0;
                                 Console.WriteLine($"{trackBar_frameIndex.Maximum} {trackBar_frameIndex.Value}");
                             }));
                         }
@@ -496,14 +496,14 @@ namespace onnxNote
             {
                 int maxIndex = int.MinValue;
                 List<frameDataSet> frameList = new List<frameDataSet>(PredictTaskBatchSize);
-
+                
                 int frameIndex = 0;
+                capture.PosFrames = 0;
 
                 using (Mat frame = new Mat())
                 {
                     while (capture.Read(frame) && !frame.Empty())
                     {
-                        frameIndex = capture.PosFrames;
 
                         maxIndex = Math.Max(maxIndex, frameIndex);
                         frameList.Add(new frameDataSet(BitmapConverter.ToBitmap(frame), frameIndex));
@@ -525,6 +525,8 @@ namespace onnxNote
                         }
 
                         if (worker.CancellationPending) { e.Cancel = true; break; }
+
+                        frameIndex = capture.PosFrames;
                     }
 
                     Console.Write($"  Add+B start {frameList[0].frameIndex} + {frameList.Count}");
