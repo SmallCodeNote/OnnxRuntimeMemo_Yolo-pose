@@ -178,6 +178,7 @@ namespace onnxNote
         }
 
         List<PoseInfo> LastPoseInfos;
+
         private void drawFrame()
         {
             if (this.InvokeRequired) { this.Invoke((Action)(() => { drawFrame(); })); }
@@ -187,7 +188,7 @@ namespace onnxNote
                 {
                     using (Mat frame = new Mat())
                     {
-                        capture.PosFrames = trackBar_frameIndex.Value > 0 ? trackBar_frameIndex.Value - 1 : 0;
+                        capture.PosFrames = trackBar_frameIndex.Value;
 
                         if (capture.IsDisposed || !capture.Read(frame) || frame.Empty()) return;
 
@@ -504,8 +505,8 @@ namespace onnxNote
                 {
                     while (capture.Read(frame) && !frame.Empty())
                     {
-
                         maxIndex = Math.Max(maxIndex, frameIndex);
+
                         frameList.Add(new frameDataSet(BitmapConverter.ToBitmap(frame), frameIndex));
 
                         if (frameList.Count >= PredictTaskBatchSize)
